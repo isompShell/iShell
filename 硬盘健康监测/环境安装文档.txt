@@ -1,0 +1,16 @@
+megacli安装：
+
+       预先安装需要的其他包：
+1。apt-get -y install  rpm2cpio libsysfs2 
+         安装完成后执行如下命令
+cd /lib/x86_64-linux-gnu/
+ln -s libsysfs.so.2.0.1 libsysfs.so.2.0.2
+        进入 8.00.48_Linux_MegaCLI.zip包所在的目录，执行如下命令：
+rpm2cpio MegaCli-8.00.48-1.i386.rpm | cpio -idmv
+cp opt/MegaRAID/MegaCli/MegaCli64 /sbin/
+cp opt/MegaRAID/MegaCli/MegaCli /sbin/
+
+
+
+smartctl安装：
+apt-get install smartmontools
