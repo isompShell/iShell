@@ -13,8 +13,8 @@ do
         if [ $ndbd_num -eq 0 ];then
           /usr/local/mysql/bin/ndbd
           #sleep 20
-          killall -s SIGKILL mysql
-          service mysql start
+          #killall -s SIGKILL mysql
+          #service mysql start
         fi
 
     else
