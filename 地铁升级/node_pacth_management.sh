@@ -10,7 +10,10 @@
 #The first one,config and management tar package
 
 #NOW_VERSION=`cat /var/lib/fort/version.sn|head -n1`
-NOW_VERSION="1.0.1"
+
+num=`cat /var/lib/fort/version.sn | head -n1 | awk -F. '{print $3}'`
+let num=$num+1
+NOW_VERSION=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn`
 LAST_VERSION=`cat /var/lib/fort/version.sn|tail -n1`
 P_VERSION="0x4D01"
 Package="fort-service"
@@ -82,7 +85,7 @@ case $1 in
     install)
           
           if [ -e /usr/local/fort_nonsyn/config/concentrationManagement/patch ];then
-            for file in `find /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${NOW_VERSION}.bin -type f 2>/dev/null`
+            for file in `find /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${NOW_VERSION}.bin -type f`
              do
                if [ -f $file ];then
                  chmod 777 $file 2>/dev/null
