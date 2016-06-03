@@ -74,8 +74,10 @@ if [ -e /var/lib/fort/backup/fort-service_${LAST_VERSION}_new ];then
 
 case $1 in 
     detail)
-           cat /var/lib/fort/control_${NOW_VERSION}|grep Name
-           cat /var/lib/fort/control_${NOW_VERSION}|grep Description 
+           cat /var/lib/fort/control_${NOW_VERSION}|grep Name|sed 's/$/_a_/g'
+           cat /var/lib/fort/control_${NOW_VERSION}|grep Description|sed 's/$/_a_/g'
+           cat /var/lib/fort/version.sn|head -n1|sed 's/$/_a_/g'
+
          ;;
     install)
           
