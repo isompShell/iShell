@@ -45,7 +45,7 @@ if [  $? != 0 ] ;then
 		echo "`date |cut -d' ' -f2-5` error[1001] 443 port no open"|tee -a $log_file
 else
 		echo "`date |cut -d' ' -f2-5` 443 port open"|tee -a $log_file
-                SINTOM=1
+                SINTOM=1  #判断服务是否正常
 fi
 		echo ${MYSQL_PORT} >/dev/null 2>&1
 if [ $? != 0  ];then
@@ -191,20 +191,20 @@ rm -rf ${DMYSQL_PORT_FILE}
 rm -rf ${DSSH_SERVICE_FILE}
 rm -rf ${DMYSQL_SERVICE_FILE}
 
-chmod +x /usr/local/sbin/rdpd
-chown -R root:root /usr/local/sbin/rdpd
-cd /usr/local/soft9100
-chmod +x run.sh
-./run.sh &
-echo -e \003
-cd /usr/local/soft9101
-chmod +x run.sh
-./run.sh &
-echo -e \003
-
-chmod +x /usr/local/bin/SimpShell
-chmod u+s /usr/local/bin/SimpShell
-/etc/init.d/ssh restart
+#chmod +x /usr/local/sbin/rdpd
+#chown -R root:root /usr/local/sbin/rdpd
+#cd /usr/local/soft9100
+#chmod +x run.sh
+#./run.sh &
+#echo -e \003
+#cd /usr/local/soft9101
+#chmod +x run.sh
+#./run.sh &
+#echo -e \003
+#
+#chmod +x /usr/local/bin/SimpShell
+#chmod u+s /usr/local/bin/SimpShell
+#/etc/init.d/ssh restart
  
 	#备份sql
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
@@ -220,13 +220,13 @@ chmod u+s /usr/local/bin/SimpShell
 
 	#解tomcat_tar包,导出sql
                 echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
-		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
+				tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 1>/dev/null
                 echo "`date|cut -d' ' -f2-5` tar new msyql extract now ..."|tee -a $log_file
 		if [ "${SINMYSQL}" = 1 ];then
-                tar -zxvPf ${P_VERSION}.${Package}.${MASTER_VERSION}.mysql.tar.gz 1>/dev/null
+                tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 1>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
-        	mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
+				mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
 		fi
                 echo "`date|cut -d' ' -f2-5` tar new mysql extract done ..."|tee -a $log_file
                 echo "`date|cut -d' ' -f2-5` tar new extract done ..."|tee -a $log_file
@@ -310,8 +310,8 @@ chmod u+s /usr/local/bin/SimpShell
       		echo "`date|cut -d' ' -f2-5` tar last create done ..."|tee -a $log_file
 	#tomcat文件解压
       		echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
-      		tar -zxvPf ${P_VERSION}.${Package}.${new_version}.tar.gz 2>/dev/null
-      		tar -zxvPf ${P_VERSION}.${Package}.${MASTER_VERSION}.tomcat.tar.gz 2>/dev/null
+      		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
+      		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 2>/dev/null
       		echo "`date|cut -d' ' -f2-5` tar new extract done ..."|tee -a $log_file
 	#tomcat服务重启
       		echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
@@ -380,7 +380,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
         #sql升级
                 echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
                 if [ "${SINMYSQL}" = 1 ];then
-		#tar -zxvf ${P_VERSION}.${Package}.${MASTER_VERSION}.tar.gz 2>/dev/null
+				tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 2>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
@@ -428,7 +428,7 @@ echo "mysql_minor"|tee -a $log_file
 }
 
 dir_tmp=/root/
-sed -n -e '1,/^exit 0$/!p' $0 > "${dir_tmp}/${P_VERSION}.${Package}.${new_version}.tar.gz" 2>/dev/null
+sed -n -e '1,/^exit 0$/!p' $0 > "${dir_tmp}/${P_VERSION}-${Package}.${new_version}.tar.gz" 2>/dev/null
 cd $dir_tmp
 case $1 in 
      1)
