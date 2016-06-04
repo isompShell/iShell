@@ -217,22 +217,32 @@ rm -rf ${DMYSQL_SERVICE_FILE}
 
 
 	#备份tomcat文件
-		echo "`date|cut -d' ' -f2-5` tar last create now ..."|tee -a $log_file 
+		echo "`date|cut -d' ' -f2-5` tomcat backup create now ..."|tee -a $log_file 
      	tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} 1>/dev/null
-      	echo "`date|cut -d' ' -f2-5` tar last create done ..."|tee -a $log_file
+      	echo "`date|cut -d' ' -f2-5` tomcat backup create done ..."|tee -a $log_file
 
 	#解tomcat_tar包,导出sql
-        echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
+        echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
 		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
         tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 1>/dev/null
-        echo "`date|cut -d' ' -f2-5` tar new msyql extract now ..."|tee -a $log_file
+		if [ $?==0 ];then
+                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+        else
+                        echo "update tomcat faild"
+        fi
+		
 		if [ "${SINMYSQL}" = 1 ];then
+				echo "`date|cut -d' ' -f2-5` msyql udpate now ..."|tee -a $log_file
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 1>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
 				mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
+		if [ $?==0 ];then
+                echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file
+        else
+                echo "update mysql faild"
+        fi
 		fi
-                echo "`date|cut -d' ' -f2-5` tar new mysql extract done ..."|tee -a $log_file
-                echo "`date|cut -d' ' -f2-5` tar new extract done ..."|tee -a $log_file
+             
 
 	#重启tomcat服务
       		echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
@@ -294,30 +304,29 @@ else
 fi
 echo " ------------local configuration checking done------------- "|tee -a $log_file
 
-chmod +x /usr/local/sbin/rdpd
-chown -R root:root /usr/local/sbin/rdpd
-cd /usr/local/soft9100
-./run.sh &
-echo -e \003
-cd /usr/local/soft9101
-./run.sh &
-echo -e \003
- 
-chmod +x /usr/local/bin/SimpShell
-chmod u+s /usr/local/bin/SimpShell
-/etc/init.d/ssh restart
+#chmod +x /usr/local/sbin/rdpd
+#chown -R root:root /usr/local/sbin/rdpd
+#cd /usr/local/soft9100
+#./run.sh &
+#echo -e \003
+#cd /usr/local/soft9101
+#./run.sh &
+#echo -e \003
+# 
+#chmod +x /usr/local/bin/SimpShell
+#chmod u+s /usr/local/bin/SimpShell
+#/etc/init.d/ssh restart
 	#tomcat文件备份
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
-		echo "`date|cut -d' ' -f2-5` tar last create now ..."|tee -a $log_file 
+		echo "`date|cut -d' ' -f2-5` tomcat backup now ..."|tee -a $log_file 
      		tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} 2>/dev/null
-      		echo "`date|cut -d' ' -f2-5` tar last create done ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat backup done ..."|tee -a $log_file
 	#tomcat文件解压
-      		echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
       		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
       		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 2>/dev/null
-      		echo "`date|cut -d' ' -f2-5` tar new extract done ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
 	#tomcat服务重启
-      		echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
 		bash /usr/local/tomcat/bin/shutdown.sh 2>/dev/null
 
 		pid=(`ps -ef 2>/dev/null|grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
@@ -381,14 +390,14 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/${datetime}sqlbackup_${new_version}.sql 2>/dev/null
 		echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file
         #sql升级
-                echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
                 if [ "${SINMYSQL}" = 1 ];then
 				tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 2>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
                 fi
-                echo "`date|cut -d' ' -f2-5` tar new extract done ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
 		echo "mysql_main"|tee -a $log_file
 }
 #mysql备级升级
@@ -448,9 +457,7 @@ case $1 in
      ;;        
 
 esac
-      rm -rf /var/lib/fort/version.sn
       echo $new_version >/var/lib/fort/version.sn
-      echo $last_version >>/var/lib/fort/version.sn
       echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file
       echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file
 exit 0
