@@ -9,12 +9,15 @@
 #Version 1.0
 #The first one,config and management tar package
 
-#NOW_VERSION=`cat /var/lib/fort/version.sn|head -n1`
-
-num=`cat /var/lib/fort/version.sn | head -n1 | awk -F. '{print $3}'`
-let num=$num+1
-NOW_VERSION=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn`
-LAST_VERSION=`cat /var/lib/fort/version.sn|tail -n1`
+version_num=`cat /var/lib/fort/version.sn | head -n1 | awk -F. '{print $3}'` #提取版本号最后一位
+if [ $version_num != 0 ];then
+	let last_version_num=$version_num-1
+fi
+let next_version_num=$num+1
+NOW_VERSION=`cat /var/lib/fort/version.sn | head -n1`  #当前版本号
+LAST_VERSION=`sed -n 1s/.$/$((last_version_num))/p /var/lib/fort/version.sn` #上一版本号
+UPDATE_VERSION=`sed -n 1s/.$/$((next_version_num))/p /var/lib/fort/version.sn` #要升级版本号（下一版本号）
+Package_name=`echo "$3" | awk -F- '{print $3}' | awk -F. '{print $2"."$3"."$4}'` #包名版本
 P_VERSION="0x4D01"
 Package="fort-service"
 admin_dir="/var/lib/fort/"
@@ -83,9 +86,9 @@ case $1 in
 
          ;;
     install)
-          
+	    if [ $Package_name==$NOW_VERSION+1 ]
           if [ -e /usr/local/fort_nonsyn/config/concentrationManagement/patch ];then
-            for file in `find /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${NOW_VERSION}.bin -type f`
+            for file in `find /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.bin -type f`
              do
                if [ -f $file ];then
                  chmod 777 $file 2>/dev/null
@@ -96,11 +99,18 @@ case $1 in
                fi
             done
           fi
+		else
+			echo "faild"
+		fi
 
 
 
   	;;
     uninstall)
+		 if [ $version_num=0 ];then
+				echo "初始版本不能升级卸载"
+				exit 1
+		 fi
            uninstall_fort
 		num=`awk -F. '{print $3}'` /var/lib/fort/version.sn
 		let num=$num-1
