@@ -2,9 +2,12 @@
 
 P_VERSION="0x4D01"
 Package="fort-service"
-new_version="1.0.1"
-last_version="1.0.0"
-next_version="1.0.2"
+#new_version="1.0.1"           #当前要升级版本号
+num=`cat /var/lib/fort/version.sn | head -n1 | awk -F. '{print $3}'`
+let num=$num+1
+new_version=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn`
+last_version=`cat /var/lib/fort/version.sn`          #当前版本号
+#next_version="1.0.2"          #下一版本
 admin_dir="/var/lib/fort/"
 backup_dir="${admin_dir}backup/"
 backup_version="${admin_dir}${Package}/"
@@ -215,14 +218,14 @@ rm -rf ${DMYSQL_SERVICE_FILE}
 
 	#备份tomcat文件
 		echo "`date|cut -d' ' -f2-5` tar last create now ..."|tee -a $log_file 
-     		tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} 1>/dev/null
-      		echo "`date|cut -d' ' -f2-5` tar last create done ..."|tee -a $log_file
+     	tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} 1>/dev/null
+      	echo "`date|cut -d' ' -f2-5` tar last create done ..."|tee -a $log_file
 
 	#解tomcat_tar包,导出sql
-                echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
-				tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
-                tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 1>/dev/null
-                echo "`date|cut -d' ' -f2-5` tar new msyql extract now ..."|tee -a $log_file
+        echo "`date|cut -d' ' -f2-5` tar new extract now ..."|tee -a $log_file
+		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
+        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 1>/dev/null
+        echo "`date|cut -d' ' -f2-5` tar new msyql extract now ..."|tee -a $log_file
 		if [ "${SINMYSQL}" = 1 ];then
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 1>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
