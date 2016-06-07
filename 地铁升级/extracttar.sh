@@ -212,7 +212,7 @@ rm -rf ${DMYSQL_SERVICE_FILE}
 	#备份sql
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
 		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file
-		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/${datetime}sqlbackup_${new_version}.sql 1>/dev/null
+		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/sqlbackup_${new_version}.sql 1>/dev/null
 		echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file
 
 
@@ -224,6 +224,7 @@ rm -rf ${DMYSQL_SERVICE_FILE}
 	#解tomcat_tar包,导出sql
         echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
 		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 1>/dev/null
+		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
         tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 1>/dev/null
 		if [ $?==0 ];then
                         echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
@@ -324,9 +325,11 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 	#tomcat文件解压
       		echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
       		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
+			tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
       		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz 2>/dev/null
       		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
 	#tomcat服务重启
+		echo "`date|cut -d' ' -f2-5` tomcat stop  ..."|tee -a $log_file
 		bash /usr/local/tomcat/bin/shutdown.sh 2>/dev/null
 
 		pid=(`ps -ef 2>/dev/null|grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
@@ -354,13 +357,13 @@ echo "$last_version--->$new_version "|tee -a $log_file
 
 TOM_PORT=`lsof -i :443`
 MYSQL_PORT=`lsof -i :3306`
-TOM_SERVICE=`ps -aux|grep tomcat|grep -v grep`
-MYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep`
+TOM_SERVICE=`ps aux|grep tomcat|grep -v grep`
+MYSQL_SERVICE=`ps aux|grep mysql|grep -v grep`
 
 DSSH_PORT=`lsof -i :22 > /tmp/dssh_port.txt`
 DMYSQL_PORT=`lsof -i :3306 > /tmp/dmysql_port.txt`
-DSSH_SERVICE=`ps -aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
-DMYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
+DSSH_SERVICE=`ps aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
+DMYSQL_SERVICE=`ps aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
 
 DSSH_PORT_FILE="/tmp/dssh_port.txt"
 DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
@@ -387,17 +390,18 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 	#sql备份
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
 		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file
-		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/${datetime}sqlbackup_${new_version}.sql 2>/dev/null
+		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/sqlbackup_${new_version}.sql 2>/dev/null
 		echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file
         #sql升级
-                echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` mysql update now ..."|tee -a $log_file
                 if [ "${SINMYSQL}" = 1 ];then
 				tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
+				tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz 2>/dev/null
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql
                 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql
                 fi
-                echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file
 		echo "mysql_main"|tee -a $log_file
 }
 #mysql备级升级
@@ -405,13 +409,13 @@ function mysql_minor()
 {
 TOM_PORT=`lsof -i :443`
 MYSQL_PORT=`lsof -i :3306`
-TOM_SERVICE=`ps -aux|grep tomcat|grep -v grep`
-MYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep`
+TOM_SERVICE=`ps aux|grep tomcat|grep -v grep`
+MYSQL_SERVICE=`ps aux|grep mysql|grep -v grep`
 
 DSSH_PORT=`lsof -i :22 > /tmp/dssh_port.txt`
 DMYSQL_PORT=`lsof -i :3306 > /tmp/dmysql_port.txt`
-DSSH_SERVICE=`ps -aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
-DMYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
+DSSH_SERVICE=`ps aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
+DMYSQL_SERVICE=`ps aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
 
 DSSH_PORT_FILE="/tmp/dssh_port.txt"
 DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
@@ -436,7 +440,8 @@ else
 fi 
 echo " ------------local configuration checking done------------- "|tee -a $log_file
 echo "mysql_minor"|tee -a $log_file
-
+tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz 2>/dev/null
+tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
 }
 
 dir_tmp=/root/
