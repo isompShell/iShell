@@ -32,7 +32,8 @@ web_fort="/usr/local/tomcat/webapps/fort"
 local_fort="/usr/local/fort"
 soft0_fort="/usr/local/soft9100"
 soft1_fort="/usr/local/soft9101"
-sh_fort="/usr/local/bin/sh"
+sh_fort="/usr/local/bin"
+ssh_fort="/usr/local/sbin"
 log_name="forts.log"
 log_file="/var/log/$log_name"
 
@@ -40,6 +41,8 @@ log_file="/var/log/$log_name"
 
 function uninstall_fort()
 {
+mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/delete.sql >/dev/null 2>&1
+mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/sqlbackup_${NOW_VERSION}.sql >/dev/null 2>&1
 if [ -e /var/lib/fort/backup/fort-service_${NOW_VERSION}_new ];then
             for file in `find /var/lib/fort/backup/fort-service_${NOW_VERSION}_new/${NOW_VERSION}.tomcat.tar.gz  -type  f 2>/dev/null`
              	do
@@ -52,27 +55,27 @@ if [ -e /var/lib/fort/backup/fort-service_${NOW_VERSION}_new ];then
                  		rm -rf $soft0_fort
                  		rm -rf $soft1_fort
                  		rm -rf $sh_fort
+						rm -rf $ssh_fort
 						echo "tomcat uninstall now "|tee -a $log_file >/dev/null 2>&1
 
 						
                  		chmod 755 $file >/dev/null 2>&1
                  		tar -zxvPf $file >/dev/null 2>&1
 						echo "tomcat uninstall done "|tee -a $log_file >/dev/null 2>&1
-						mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/delete.sql
+						#mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/delete.sql
 						#mysql -umysql -p'm2a1s2u!@#' fort < sqlbackup_delete_$NOW_VERSION.sql
 						echo "mysql unistall now "|tee -a $log_file >/dev/null 2>&1
-						mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/sqlbackup_${NOW_VERSION}.sql >/dev/null 2>&1
+						#mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/sqlbackup_${NOW_VERSION}.sql >/dev/null 2>&1
 						echo "mysql unistall done "|tee -a $log_file >/dev/null 2>&1
-             		 else
-                 		echo "failed"
-						echo "unistall failed:上一版本文件不存在 /var/lib/fort/backup/fort-service_${NOW_VERSION}_new/${NOW_VERSION}.tomcat.tar.gz "|tee -a $log_file
-                 		exit 1
+             		 #else
+                 		#echo "failed"
+						#echo "unistall failed:上一版本文件不存在 /var/lib/fort/backup/fort-service_${NOW_VERSION}_new/${NOW_VERSION}.tomcat.tar.gz "|tee -a $log_file
+                 		#exit 1
              		fi
             done
-else
-	echo "failed"
-	echo "uninstall:faild备份目录不存在 /var/lib/fort/backup/fort-service_${NOW_VERSION}_new"|tee -a $log_file >/dev/null 2>&1
-	exit 1
+	#echo "failed"
+	#echo "uninstall:faild备份目录不存在 /var/lib/fort/backup/fort-service_${NOW_VERSION}_new"|tee -a $log_file >/dev/null 2>&1
+	#exit 1
 fi
 
 
@@ -94,9 +97,12 @@ fi
 
 case $1 in 
     detail)
+		   cat /var/lib/fort/control_$2|grep Description|sed 's/$/_a_/g'
+		   cat /var/lib/fort/control_$2|grep id|sed 's/$/_a_/g'
+		   cat /var/lib/fort/control_$2|grep PA|sed 's/$/_a_/g'
+		   cat /var/lib/fort/control_$2|grep WS|sed 's/$/_a_/g'
            cat /var/lib/fort/control_$2|grep Name|sed 's/$/_a_/g'
-           cat /var/lib/fort/control_$2|grep Description|sed 's/$/_a_/g'
-           echo $2|sed 's/$/_a_/g'
+           #echo $2|sed 's/$/_a_/g'
 
          ;;
     install)
@@ -128,7 +134,7 @@ case $1 in
 				echo "初始版本不能升级卸载"|tee -a $log_file >/dev/null 2>&1
 				exit 1
 		 fi
-           uninstall_fort
+        uninstall_fort
 		if [ $? == 0 ];then
 		echo "$NOW_VERSION--->$LAST_VERSION"|tee -a $log_file >/dev/null 2>&1
 		num=`awk -F. '{print $3}' /var/lib/fort/version.sn`

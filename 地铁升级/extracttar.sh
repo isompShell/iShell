@@ -17,7 +17,8 @@ web_fort="/usr/local/tomcat/webapps/fort"
 local_fort="/usr/local/fort" 
 soft0_fort="/usr/local/soft9100"
 soft1_fort="/usr/local/soft9101"
-sh_fort="/usr/local/bin/sh"
+sh_fort="/usr/local/bin/"
+ssh_fort="/usr/local/sbin"
 log_name="forts.log"
 log_file="/var/log/$log_name"
 #标准版升级
@@ -88,7 +89,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 
 	#备份tomcat文件
 		echo "`date|cut -d' ' -f2-5` tomcat backup create now ..."|tee -a $log_file 
-     	tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null 2>&1
+     	tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${ssh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null 2>&1
 		if [ $? == 0 ];then
 			echo "`date|cut -d' ' -f2-5` tomcat backup create done ..."|tee -a $log_file
 		else
@@ -138,15 +139,14 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 
 	#重启tomcat服务
       	echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
-		bash /usr/local/tomcat/bin/shutdown.sh >/dev/null
-
-		pid=(`ps -ef|grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
+		#bash /usr/local/bin/stop_tomcat.sh >/dev/null
+		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 		
-		kill -9 ${pid[*]} >/dev/null
+		kill -9 ${pid[*]} >/dev/null 2>&1
 		#killall -9 java >/dev/null
 	
 		sleep 2
-		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
+		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 
 		if [ "${pid[0]}" != "" ];then
 			kill -9 ${pid[*]} >/dev/null 2>&1
@@ -154,7 +154,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 		fi
       		echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file
 		rm -rf /usr/local/tomcat/work/*
-        	bash /usr/local/tomcat/bin/startup.sh >/dev/null
+        bash /usr/local/tomcat/bin/startup.sh >/dev/null
 		echo "standard upgrade"|tee -a $log_file
 		
 }
@@ -165,13 +165,13 @@ function web_up()
 
 TOM_PORT=`lsof -i :443`
 MYSQL_PORT=`lsof -i :3306`
-TOM_SERVICE=`ps -aux|grep tomcat|grep -v grep`
-MYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep`
+TOM_SERVICE=`ps aux|grep tomcat|grep -v grep`
+MYSQL_SERVICE=`ps aux|grep mysql|grep -v grep`
 
 DSSH_PORT=`lsof -i :22 > /tmp/dssh_port.txt`
 DMYSQL_PORT=`lsof -i :3306 > /tmp/dmysql_port.txt`
-DSSH_SERVICE=`ps -aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
-DMYSQL_SERVICE=`ps -aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
+DSSH_SERVICE=`ps aux|grep sshd|grep -v grep > /tmp/dssh_service.txt`
+DMYSQL_SERVICE=`ps aux|grep mysql|grep -v grep > /tmp/dmysql_service.txt`
 
 DSSH_PORT_FILE="/tmp/dssh_port.txt"
 DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
@@ -211,34 +211,50 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 	#tomcat文件备份
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
 		echo "`date|cut -d' ' -f2-5` tomcat backup now ..."|tee -a $log_file 
-     		tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null
+     		tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${ssh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null
       		echo "`date|cut -d' ' -f2-5` tomcat backup done ..."|tee -a $log_file
 	#tomcat文件解压
       		echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
-      		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null
-			tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null
-      		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null
+      		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
+		if [ $? != 0 ];then
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file
+			echo "faild"
+			exit 1
+		fi
+		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
+		if [ $? != 0 ];then
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.fort.tar.gz"|tee -a $log_file
+			echo "faild"
+			exit 1
+		fi
+        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null
+		if [ $?==0 ];then
+                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+        else
+                        echo "update tomcat faild"|tee -a $log_file
+						echo "faild"
+						exit 1
+        fi
       		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
 			echo "success"
 	#tomcat服务重启
 		echo "`date|cut -d' ' -f2-5` tomcat stop  ..."|tee -a $log_file
-		bash /usr/local/tomcat/bin/shutdown.sh >/dev/null
+		#bash /usr/local/tomcat/bin/shutdown.sh >/dev/null
+		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 
-		pid=(`ps -ef >/dev/null|grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
-
-		kill -9 ${pid[*]} >/dev/null
-		killall -9 java >/dev/null
+		kill -9 ${pid[*]} >/dev/null 2>&1
+		#killall -9 java >/dev/null
 	
 		sleep 2
-		pid=(`ps -ef >/dev/null|grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail'|awk '{print $2}'`)
+		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 
 		if [ "${pid[0]}" != "" ];then
 			kill -9 ${pid[*]} >/dev/null 2>&1
 			sleep 1
 		fi
-      		echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file
+      	echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file
 		rm -rf /usr/local/tomcat/work/*
-        	bash /usr/local/tomcat/bin/startup.sh >/dev/null
+        bash /usr/local/tomcat/bin/startup.sh >/dev/null
 echo "web_up"|tee -a $log_file
 }
 
