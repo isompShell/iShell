@@ -408,6 +408,4 @@ case $1 in
 	  fi
      ;;        
 esac
-
-
 exit 0
