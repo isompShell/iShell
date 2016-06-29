@@ -120,7 +120,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
         fi
 		
 		if [ "${SINMYSQL}" = 1 ];then
-				echo "`date|cut -d' ' -f2-5` msyql udpate now ..."|tee -a $log_file
+				echo "`date|cut -d' ' -f2-5` mysql udpate now ..."|tee -a $log_file
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
 				if [ $? == 0 ];then	
 					 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql >/dev/null 2>&1
@@ -135,7 +135,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 				exit 1	
         fi
 		fi
-             
+        rm -rf ${dir_tmp}/*.tar.gz    
 
 	#重启tomcat服务
       	echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
@@ -237,6 +237,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
         fi
       		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
 			echo "success"
+		rm -rf ${dir_tmp}/*.tar.gz 
 	#tomcat服务重启
 		echo "`date|cut -d' ' -f2-5` tomcat stop  ..."|tee -a $log_file
 		#bash /usr/local/tomcat/bin/shutdown.sh >/dev/null
@@ -256,6 +257,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 		rm -rf /usr/local/tomcat/work/*
         bash /usr/local/tomcat/bin/startup.sh >/dev/null
 echo "web_up"|tee -a $log_file
+
 }
 
 #mysql版主机升级
@@ -322,6 +324,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 					exit 1
                 fi
 		echo "mysql_main"|tee -a $log_file
+		rm -rf ${dir_tmp}/*.tar.gz  
 }
 #mysql备级升级
 function mysql_minor()
@@ -361,6 +364,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 echo "mysql_minor"|tee -a $log_file
 tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null
 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
+rm -rf ${dir_tmp}/*.tar.gz 
 }
 
 dir_tmp=/root/
