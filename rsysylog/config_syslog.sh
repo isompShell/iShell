@@ -60,7 +60,7 @@ unix() {
 net() {
 	echo '$ModLoad imudp' >>/etc/rsyslog.d/b.conf
 	echo '$UDPServerRun 514' >>/etc/rsyslog.d/b.conf
-	echo ":fromhost,isequal,\"$ip1\" /var/log/net/log/$ip1" >>/etc/rsyslog.d/b.conf
+	echo ":fromhost,isequal,\"$ip1\" /var/log/net.log/$ip1" >>/etc/rsyslog.d/b.conf
 	echo "& ~" >>/etc/rsyslog.d/b.conf
 }
 
