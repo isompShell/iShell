@@ -17,7 +17,9 @@ fi
 let next_version_num=$version_num+1        #要升级版本号最后一位
 NOW_VERSION=`cat /var/lib/fort/version.sn | head -n1`  #当前版本号
 LAST_VERSION=`sed -n 1s/.$/$((last_version_num))/p /var/lib/fort/version.sn` #上一版本号
-UPDATE_VERSION=`sed -n 1s/.$/$((next_version_num))/p /var/lib/fort/version.sn` #要升级版本号（下一版本号）
+let aaa=`echo $NOW_VERSION | awk -F. '{print $3}'`+1
+UPDATE_VERSION="1.0.$aaa"
+#UPDATE_VERSION=`sed -n 1s/.$/$((next_version_num))/p /var/lib/fort/version.sn` #要升级版本号（下一版本号）
 Package_name=`echo "$3" | awk -F- '{print $3}' | awk -F. '{print $3"."$4"."$5}'` #包名版本
 P_VERSION="0x4D01"
 Package="fort-service.isomp"
@@ -44,7 +46,7 @@ function uninstall_fort()
 mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/delete.sql >/dev/null 2>&1
 mysql -umysql -p'm2a1s2u!@#' fort </var/lib/fort/backup/fort-service_${NOW_VERSION}_new/sqlbackup_${NOW_VERSION}.sql >/dev/null 2>&1
 if [ -e /var/lib/fort/backup/fort-service_${NOW_VERSION}_new ];then
-            for file in `find /var/lib/fort/backup/fort-service_${NOW_VERSION}_new/${NOW_VERSION}.tomcat.tar.gz  -type  f 2>/dev/null`
+            for file in `find /var/lib/fort/backup/fort-service_${NOW_VERSION}_new/${NOW_VERSION}.tomcat.tar.gz  -type  f >/dev/null`
              	do
               		if [ -f $file ];then
 						echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
@@ -105,6 +107,23 @@ case $1 in
            #echo $2|sed 's/$/_a_/g'
 
          ;;
+    status)
+			#package_version=`echo $Package_name | awk -F. '{print $3}'`
+			package_version=`echo "$2" | awk -F- '{print $3}' | awk -F. '{print $5}'`
+			if [[ $version_num -ge $package_version ]]; then
+				echo "successed"
+			else
+				echo "failed"
+			fi
+		 ;;
+	remove)
+			rm -rf "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64"
+			if [ -e "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64" ];then
+				echo "failed"
+			else
+				echo "successed"
+			fi
+		;;
     install)
 	    if [ $Package_name == $UPDATE_VERSION ];then   #判断包名版本号是否等于当前版本号加1
           if [ -e /usr/local/fort_nonsyn/config/concentrationManagement/patch ];then
@@ -112,7 +131,21 @@ case $1 in
              do
                if [ -f $file ];then
                  chmod 777 $file >/dev/null
-                 bash $file $2 >/dev/null
+                 bash $file $2
+				 if [ $? -eq 0 ];then
+					rm -rf /root/*.tar.gz
+					sed -i -e 2d /var/lib/fort/version.sn
+					if [ $next_version_num -lt 10 ];then
+						#echo "$LAST_VERSION--->$100$next_version_num"|tee -a $log_file
+						echo "100$next_version_num" >>/var/lib/fort/version.sn
+					elif [ $next_version_num  -lt 100 ];then
+						#echo "$LAST_VERSION--->$10$next_version_num"|tee -a $log_file
+						echo "10$next_version_num" >>/var/lib/fort/version.sn
+					elif [ $next_version_num  -lt 1000 ];then
+						#echo "$LAST_VERSION--->$1$next_version_num"|tee -a $log_file
+						echo "1$next_version_num" >>/var/lib/fort/version.sn
+					fi
+				 fi
                else
 				 echo "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64 not found"
 				 echo "failed"
@@ -125,7 +158,7 @@ case $1 in
 			echo "failed"
 			exit 1
 		fi
-
+	
 
 
   	;;
