@@ -4,7 +4,14 @@ Package="fort-service"
 #new_version="1.0.1"           #当前要升级版本号
 num=`cat /var/lib/fort/version.sn | head -n1 | awk -F. '{print $3}'`
 let num=$num+1
-new_version=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn` #要升级的版本号
+if [ $num -lt 11 ];then
+	new_version=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn`
+elif [ $num  -lt 101 ];then
+	new_version=`sed -n 1s/..$/$((num))/p /var/lib/fort/version.sn`
+elif [ $num  -lt 1001 ];then
+	new_version=`sed -n 1s/...$/$((num))/p /var/lib/fort/version.sn`		
+fi
+#new_version=`sed -n 1s/.$/$((num))/p /var/lib/fort/version.sn` #要升级的版本号
 last_version=`cat /var/lib/fort/version.sn | head -n1` #当前版本号
 #next_version="1.0.2"          #下一版本
 admin_dir="/var/lib/fort/"
@@ -40,97 +47,102 @@ DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
 DSSH_SERVICE_FILE="/tmp/dssh_service.txt"
 DMYSQL_SERVICE_FILE="/tmp/dmysql_service.txt"
 
-echo "$last_version--->$new_version "|tee -a $log_file
-echo " ------------local configuration checking now------------- "|tee -a $log_file
+echo "$last_version--->$new_version "|tee -a $log_file >/dev/null
+echo " ------------local configuration checking now------------- "|tee -a $log_file >/dev/null
 
 		echo ${TOM_PORT} >/dev/null 2>&1
 if [  $? != 0 ] ;then 
-		echo "`date |cut -d' ' -f2-5` error[1001] 443 port no open"|tee -a $log_file
+
+		echo "`date |cut -d' ' -f2-5` error[1001] 443 port no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` 443 port open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` 443 port open"|tee -a $log_file >/dev/null
                 SINTOM=1  #判断服务是否正常
 fi
 		echo ${MYSQL_PORT} >/dev/null 2>&1
 if [ $? != 0  ];then
-		echo "`date |cut -d' ' -f2-5` error[1002] 3306 port no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1002] 3306 port no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` 3306 port open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` 3306 port open"|tee -a $log_file >/dev/nulltee -a $log_file >/dev/nullc
                 SINMYSQL=1
 fi
 		echo ${TOM_SERVICE} >/dev/null 2>&1
 if [ $? != 0 ];then
-		echo "`date |cut -d' ' -f2-5` error[1003] tomcat service no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1003] tomcat service no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` tomcat service open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` tomcat service open"|tee -a $log_file >/dev/null
                 SINTOM=1
 fi
 		echo ${MYSQL_SERVICE} >/dev/null 2>&1
 if [ $? != 0 ];then
-		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file >/dev/null
                 SINMYSQL=1
 fi 
-echo " ------------local configuration checking done------------- "|tee -a $log_file
+echo " ------------local configuration checking done------------- "|tee -a $log_file >/dev/null
 
 
  
 	#备份sql
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
-		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file >/dev/null
 		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/sqlbackup_${new_version}.sql >/dev/null 2>&1
 		if [ $? == 0 ];then
-			echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file >/dev/null
 		else
-			echo "`date|cut -d' ' -f2-5` mysql backup faild ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` mysql backup faild ..."|tee -a $log_file >/dev/null
+			echo "faild"
+			exit 1
 		fi
 		
 
 
 	#备份tomcat文件
-		echo "`date|cut -d' ' -f2-5` tomcat backup create now ..."|tee -a $log_file 
+		echo "`date|cut -d' ' -f2-5` tomcat backup create now ..."|tee -a $log_file >/dev/null 
      	tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${ssh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null 2>&1
 		if [ $? == 0 ];then
-			echo "`date|cut -d' ' -f2-5` tomcat backup create done ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` tomcat backup create done ..."|tee -a $log_file >/dev/null
 		else
-			echo "`date|cut -d' ' -f2-5` tomcat backup faild ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` tomcat backup faild ..."|tee -a $log_file >/dev/null
+			echo "faild"
+			exit 1
 		fi
 
 	#解tomcat_tar包,导出sql
-        echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
+        echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file >/dev/null
 		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
 		if [ $? != 0 ];then
-			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file >/dev/null
 			echo "faild"
 			exit 1
 		fi
-		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
+		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
 		if [ $? != 0 ];then
-			echo "tar fail ${P_VERSION}-${Package}.${new_version}.fort.tar.gz"|tee -a $log_file
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.fort.tar.gz"|tee -a $log_file >/dev/null
 			echo "faild"
 			exit 1
 		fi
-        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null
+        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null 2>&1
 		if [ $?==0 ];then
-                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file >/dev/null
         else
-                        echo "update tomcat faild"|tee -a $log_file
+                        echo "update tomcat faild"|tee -a $log_file >/dev/null
 						echo "faild"
 						exit 1
         fi
 		
 		if [ "${SINMYSQL}" = 1 ];then
-				echo "`date|cut -d' ' -f2-5` mysql udpate now ..."|tee -a $log_file
+				echo "`date|cut -d' ' -f2-5` mysql udpate now ..."|tee -a $log_file >/dev/null
                 tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
 				if [ $? == 0 ];then	
 					 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql >/dev/null 2>&1
 					 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
 				fi
 		if [ $? == 0 ];then
-                echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file >/dev/null
 				echo "success"
         else
-                echo "update mysql faild"|tee -a $log_file
+                echo "update mysql faild"|tee -a $log_file >/dev/null
 				echo "faild"
 				exit 1	
         fi
@@ -138,7 +150,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
         rm -rf ${dir_tmp}/*.tar.gz    
 
 	#重启tomcat服务
-      	echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file
+      	echo "`date |cut -d' ' -f2-5` stop tomcat..."|tee -a $log_file >/dev/null
 		#bash /usr/local/bin/stop_tomcat.sh >/dev/null
 		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 		
@@ -152,10 +164,10 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 			kill -9 ${pid[*]} >/dev/null 2>&1
 			sleep 1
 		fi
-      		echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file
+      		echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file >/dev/null
 		rm -rf /usr/local/tomcat/work/*
         bash /usr/local/tomcat/bin/startup.sh >/dev/null
-		echo "standard upgrade"|tee -a $log_file
+		echo "standard upgrade"|tee -a $log_file >/dev/null
 		
 }
 
@@ -178,23 +190,23 @@ DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
 DSSH_SERVICE_FILE="/tmp/dssh_service.txt"
 DMYSQL_SERVICE_FILE="/tmp/dmysql_service.txt"
 
-echo "$last_version--->$new_version "|tee -a $log_file
-echo " ------------local configuration checking now------------- "|tee -a $log_file
+echo "$last_version--->$new_version "|tee -a $log_file >/dev/null
+echo " ------------local configuration checking now------------- "|tee -a $log_file >/dev/null
 		echo ${TOM_PORT} >/dev/null 2>&1
 if [  $? != 0 ] ;then 
-		echo "`date |cut -d' ' -f2-5` error[1001] web server 443 port no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1001] web server 443 port no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` web server 443 port open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` web server 443 port open"|tee -a $log_file >/dev/null
                 SINTOM=1
 fi
 		echo ${TOM_SERVICE} >/dev/null 2>&1
 if [ $? != 0 ];then
-		echo "`date |cut -d' ' -f2-5` error[1003] web server tomcat service no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1003] web server tomcat service no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` tomcat service open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` tomcat service open"|tee -a $log_file >/dev/null
                 SINTOM=1
 fi
-echo " ------------local configuration checking done------------- "|tee -a $log_file
+echo " ------------local configuration checking done------------- "|tee -a $log_file >/dev/null
 
 #chmod +x /usr/local/sbin/rdpd
 #chown -R root:root /usr/local/sbin/rdpd
@@ -210,36 +222,36 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 #/etc/init.d/ssh restart
 	#tomcat文件备份
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
-		echo "`date|cut -d' ' -f2-5` tomcat backup now ..."|tee -a $log_file 
+		echo "`date|cut -d' ' -f2-5` tomcat backup now ..."|tee -a $log_file >/dev/null 
      		tar -zcvPf ${backup_tar}${new_version}.tomcat.tar.gz ${sh_fort} ${ssh_fort} ${web_fort} ${local_fort} ${soft0_fort} ${soft1_fort} >/dev/null
-      		echo "`date|cut -d' ' -f2-5` tomcat backup done ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat backup done ..."|tee -a $log_file >/dev/null
 	#tomcat文件解压
-      		echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file >/dev/null
       		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
 		if [ $? != 0 ];then
-			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file >/dev/null
 			echo "faild"
 			exit 1
 		fi
-		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
+		tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
 		if [ $? != 0 ];then
-			echo "tar fail ${P_VERSION}-${Package}.${new_version}.fort.tar.gz"|tee -a $log_file
+			echo "tar fail ${P_VERSION}-${Package}.${new_version}.fort.tar.gz"|tee -a $log_file >/dev/null
 			echo "faild"
 			exit 1
 		fi
-        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null
+        tar -zxvPf ${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz >/dev/null 2>&1
 		if [ $?==0 ];then
-                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+                        echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file >/dev/null
         else
-                        echo "update tomcat faild"|tee -a $log_file
+                        echo "update tomcat faild"|tee -a $log_file >/dev/null
 						echo "faild"
 						exit 1
         fi
-      		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file
+      		echo "`date|cut -d' ' -f2-5` tomcat update done ..."|tee -a $log_file >/dev/null
 			echo "success"
 		rm -rf ${dir_tmp}/*.tar.gz 
 	#tomcat服务重启
-		echo "`date|cut -d' ' -f2-5` tomcat stop  ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` tomcat stop  ..."|tee -a $log_file >/dev/null
 		#bash /usr/local/tomcat/bin/shutdown.sh >/dev/null
 		pid=(`ps -ef |grep -E "tomcat|java|jdk" |egrep -v 'egrep|tail|mgr_client'|awk '{print $2}'`)
 
@@ -253,17 +265,17 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 			kill -9 ${pid[*]} >/dev/null 2>&1
 			sleep 1
 		fi
-      	echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file
+      	echo "`date |cut -d' ' -f2-5` start tomcat..."|tee -a $log_file >/dev/null
 		rm -rf /usr/local/tomcat/work/*
         bash /usr/local/tomcat/bin/startup.sh >/dev/null
-echo "web_up"|tee -a $log_file
+echo "web_up"|tee -a $log_file >/dev/null
 
 }
 
 #mysql版主机升级
 function mysql_main()
 {
-echo "$last_version--->$new_version "|tee -a $log_file
+echo "$last_version--->$new_version "|tee -a $log_file >/dev/null
 
 TOM_PORT=`lsof -i :443`
 MYSQL_PORT=`lsof -i :3306`
@@ -280,50 +292,50 @@ DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
 DSSH_SERVICE_FILE="/tmp/dssh_service.txt"
 DMYSQL_SERVICE_FILE="/tmp/dmysql_service.txt"
 
-echo " ------------local configuration checking now------------- "|tee -a $log_file
+echo " ------------local configuration checking now------------- "|tee -a $log_file >/dev/null
 		echo ${MYSQL_PORT} >/dev/null 2>&1
 if [ $? != 0  ];then
-		echo "`date |cut -d' ' -f2-5` error[1002] mysql server 3306 port no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1002] mysql server 3306 port no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` mysql server 3306 port open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` mysql server 3306 port open"|tee -a $log_file >/dev/null
                 SINMYSQL=1
 fi
 		echo ${MYSQL_SERVICE} >/dev/null 2>&1
 if [ $? != 0 ];then
-		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file >/dev/null
                 SINMYSQL=1
 fi 
-echo " ------------local configuration checking done------------- "|tee -a $log_file
+echo " ------------local configuration checking done------------- "|tee -a $log_file >/dev/null
 
 	#sql备份
 		mkdir -p "${backup_dir}${Package}_${new_version}_new"
-		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` mysql backup now ..."|tee -a $log_file >/dev/null
 		/usr/local/mysql/bin/mysqldump -umysql -p'm2a1s2u!@#' fort >${backup_dir}${Package}_${new_version}_new/sqlbackup_${new_version}.sql >/dev/null
 		if [ $? == 0 ];then
-			echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` mysql backup done ..."|tee -a $log_file >/dev/null
 		else
-			echo "`date|cut -d' ' -f2-5` mysql backup faild ..."|tee -a $log_file
+			echo "`date|cut -d' ' -f2-5` mysql backup faild ..."|tee -a $log_file >/dev/null
 			exit 1
 		fi
         #sql升级
-                echo "`date|cut -d' ' -f2-5` mysql update now ..."|tee -a $log_file
+                echo "`date|cut -d' ' -f2-5` mysql update now ..."|tee -a $log_file >/dev/null
                 if [ "${SINMYSQL}" = 1 ];then
-					tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null
-					tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null
-					tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null
+					tar -zxvf ${P_VERSION}-${Pac       kage}.${new_version}.tar.gz >/dev/null 2>&1
+					tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
+					tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
 				fi
 				if [ $? == 0 ];then
 					mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql >/dev/null 2>&1
 					mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
-					echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file
+					echo "`date|cut -d' ' -f2-5` mysql update done ..."|tee -a $log_file >/dev/null
 				else	
-					echo "`date|cut -d' ' -f2-5` mysql update faild ..."|tee -a $log_file
+					echo "`date|cut -d' ' -f2-5` mysql update faild ..."|tee -a $log_file >/dev/null
 					echo "faild"
 					exit 1
                 fi
-		echo "mysql_main"|tee -a $log_file
+		echo "mysql_main"|tee -a $log_file >/dev/null
 		rm -rf ${dir_tmp}/*.tar.gz  
 }
 #mysql备级升级
@@ -344,27 +356,28 @@ DMYSQL_PORT_FILE="/tmp/dmysql_port.txt"
 DSSH_SERVICE_FILE="/tmp/dssh_service.txt"
 DMYSQL_SERVICE_FILE="/tmp/dmysql_service.txt"
 
-echo "$last_version--->$new_version "|tee -a $log_file
-echo " ------------local configuration checking now------------- "|tee -a $log_file
+echo "$last_version--->$new_version "|tee -a $log_file >/dev/null
+echo " ------------local configuration checking now------------- "|tee -a $log_file >/dev/null
 		echo ${MYSQL_PORT} >/dev/null 2>&1
 if [ $? != 0  ];then
-		echo "`date |cut -d' ' -f2-5` error[1002] mysql server 3306 port no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1002] mysql server 3306 port no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` mysql server 3306 port open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` mysql server 3306 port open"|tee -a $log_file >/dev/null
                 SINMYSQL=1
 fi
 		echo ${MYSQL_SERVICE} >/dev/null 2>&1
 if [ $? != 0 ];then
-		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` error[1004] mysql service no open"|tee -a $log_file >/dev/null
 else
-		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file
+		echo "`date |cut -d' ' -f2-5` mysql service open"|tee -a $log_file >/dev/null
                 SINMYSQL=1
 fi 
-echo " ------------local configuration checking done------------- "|tee -a $log_file
-echo "mysql_minor"|tee -a $log_file
-tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null
-tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz
-rm -rf ${dir_tmp}/*.tar.gz 
+echo " ------------local configuration checking done------------- "|tee -a $log_file >/dev/null
+echo "mysql_minor"|tee -a $log_file >/dev/null
+tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
+tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
+echo "success"
+rm -rf $echo{dir_tmp}/*.tar.gz 
 }
 
 dir_tmp=/root/
@@ -377,8 +390,8 @@ case $1 in
 		echo $new_version >/var/lib/fort/version.sn
 		nnn=`echo $new_version | awk -F. '{print $3}'`
 		echo 100$nnn >>/var/lib/fort/version.sn
-		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file
-		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file >/dev/null
+		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file >/dev/null
 	  fi
      ;; 
      2)
@@ -387,8 +400,8 @@ case $1 in
 		echo $new_version >/var/lib/fort/version.sn
 		nnn=`echo $new_version | awk -F. '{print $3}'`
 		echo 100$nnn >>/var/lib/fort/version.sn
-		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file
-		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file >/dev/null
+		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file >/dev/null
 	  fi
      ;;
      3)
@@ -397,8 +410,8 @@ case $1 in
 		echo $new_version >/var/lib/fort/version.sn
 		nnn=`echo $new_version | awk -F. '{print $3}'`
 		echo 100$nnn >>/var/lib/fort/version.sn
-		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file
-		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file >/dev/null
+		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file >/dev/null
 	  fi
      ;;
      4)
@@ -407,8 +420,8 @@ case $1 in
 		echo $new_version >/var/lib/fort/version.sn
 		nnn=`echo $new_version | awk -F. '{print $3}'`
 		echo 100$nnn >>/var/lib/fort/version.sn
-		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file
-		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file
+		echo "`date|cut -d' ' -f2-5` version change done ..."|tee -a $log_file >/dev/null
+		echo "`date|cut -d' ' -f2-5` installation complete ..."|tee -a $log_file >/dev/null 
 	  fi
      ;;        
 esac
