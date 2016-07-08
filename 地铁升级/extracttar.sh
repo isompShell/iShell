@@ -111,6 +111,7 @@ echo " ------------local configuration checking done------------- "|tee -a $log_
 	#解tomcat_tar包,导出sql
         echo "`date|cut -d' ' -f2-5` tomcat update now ..."|tee -a $log_file >/dev/null
 		tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
+		
 		if [ $? != 0 ];then
 			echo "tar fail ${P_VERSION}-${Package}.${new_version}.tar.gz"|tee -a $log_file >/dev/null
 			echo "faild"
