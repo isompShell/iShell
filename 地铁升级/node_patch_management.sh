@@ -99,11 +99,16 @@ fi
 
 case $1 in 
     detail)
-		   cat /var/lib/fort/control_$2|grep Description|sed 's/$/_a_/g'
-		   cat /var/lib/fort/control_$2|grep id|sed 's/$/_a_/g'
-		   cat /var/lib/fort/control_$2|grep PA|sed 's/$/_a_/g'
-		   cat /var/lib/fort/control_$2|grep WS|sed 's/$/_a_/g'
-           cat /var/lib/fort/control_$2|grep Name|sed 's/$/_a_/g'
+		   one=`cat /var/lib/fort/control_$2|grep Description|sed 's/$/_a_/g'`
+		   echo $one
+		   two=`cat /var/lib/fort/control_$2|grep id|sed 's/$/_a_/g'`
+		   echo $two
+		   three=`cat /var/lib/fort/control_$2|grep PA|sed 's/$/_a_/g'`
+		   echo $three
+		   four=`cat /var/lib/fort/control_$2|grep WS|sed 's/$/_a_/g'`
+		   echo $four
+           five=`cat /var/lib/fort/control_$2|grep Name|sed 's/$/_a_/g'`
+           echo $five
            #echo $2|sed 's/$/_a_/g'
 
          ;;
@@ -117,8 +122,9 @@ case $1 in
 			fi
 		 ;;
 	remove)
-			rm -rf "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64"
-			if [ -e "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64" ];then
+			Package_name=`echo "$2" | awk -F- '{print $3}' | awk -F. '{print $3"."$4"."$5}'`
+			rm -rf "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${Package_name}.64"
+			if [ -e "/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${Package_name}}.64" ];then
 				echo "failed"
 			else
 				echo "successed"
