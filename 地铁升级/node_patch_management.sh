@@ -21,6 +21,7 @@ let aaa=`echo $NOW_VERSION | awk -F. '{print $3}'`+1
 UPDATE_VERSION="1.0.$aaa"
 #UPDATE_VERSION=`sed -n 1s/.$/$((next_version_num))/p /var/lib/fort/version.sn` #要升级版本号（下一版本号）
 Package_name=`echo "$3" | awk -F- '{print $3}' | awk -F. '{print $3"."$4"."$5}'` #包名版本
+Package_name_tail=`echo "$3" | awk -F- '{print $3}' | awk -F. '{print $5}'` 
 P_VERSION="0x4D01"
 Package="fort-service.isomp"
 admin_dir="/var/lib/fort/"
@@ -131,6 +132,11 @@ case $1 in
 			fi
 		;;
     install)
+		if [[ $Package_name_tail -le $version_num ]]; then
+			echo "already install"
+			exit 1
+		fi
+		
 	    if [ $Package_name == $UPDATE_VERSION ];then   #判断包名版本号是否等于当前版本号加1
           if [ -e /usr/local/fort_nonsyn/config/concentrationManagement/patch ];then
             for file in `find /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.${UPDATE_VERSION}.64 -type f`

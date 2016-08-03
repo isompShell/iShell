@@ -19,6 +19,9 @@ ssh_fort="/usr/local/sbin"
 log_name="forts.log"
 log_file="/var/log/$log_name"
 TMP="/tmp"
+config_file="/etc/ip"
+mysql_user="mysql"
+mysql_pass='m2a1s2u!@#'
 #当前环境
 #1：标准 2：集群 3：地铁
 anum=`cat -A /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties |  grep '^fort.cluster' | awk -F= '{print $2}' | cut -f -1 -d "^"`
@@ -38,7 +41,7 @@ backup_tar="${backup_dir}${Package}_${new_version}_new/"
 #传入参数（服务名） 如果存在，返回1.不存在，返回0
 #==================================================
 function check_status(){
-	$ck=`ps -ef | grep $1 | grep -v grep | wc -l`
+	ck=`ps -ef | grep $1 | grep -v grep | wc -l`
 	if [[ $ck==0 ]]; then
 		echo 0
 	else 
@@ -62,10 +65,19 @@ function check_services(){
 	fi
 	if [[ $ck_mysql == 0 ]];then
 		echo "`date |cut -d' ' -f2-5` mysql not running">> $log_file
+		echo " ------------local configuration checking done------------- ">> $log_file
 	else
 		echo "`date |cut -d' ' -f2-5` mysql running....">> $log_file
+		
 		echo " ------------local configuration checking done------------- ">> $log_file
 	fi
+	# 检测mysql是否同步
+	status=`mysql -u$mysql_user -p$mysql_pass -e "show slave status\G" | grep -i "running"`> /dev/null
+	Slave_IO_Running=`echo $status | grep Slave_IO_Running | awk '{print $2}'`
+	Slave_SQL_Running=`echo $status | grep Slave_SQL_Running | awk '{print $2}'`
+	Master_Host=`mysql -u$mysql_user -p$mysql_pass -e "show slave status\G" | grep -i "Master_Host" | awk -F: '{print $2}'`> /dev/null
+# 检测是否存在heartbeat服务
+	hb=`ps -ef | grep heartbeat | grep -v grep | wc -l`
 }
 
 function backup_tomcat(){
@@ -97,7 +109,7 @@ function tomcat_update(){
 	tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
 	tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
 	if [[ $? -ne 0 ]]; then
-		echo "`date|cut -d' ' -f2-5` tar  tar details faild faild ">> $log_file
+		echo "`date|cut -d' ' -f2-5`tar fort faild ">> $log_file
 	fi
 	if [ -e /$TMP/${P_VERSION}-${Package}.${new_version}.tomcat.tar.gz ];then
 				echo "`date|cut -d' ' -f2-5` tomcat update now ...">> $log_file
@@ -138,7 +150,7 @@ function mysql_update(){
 	tar -zxvf ${P_VERSION}-${Package}.${new_version}.tar.gz >/dev/null 2>&1
 	tar -zxvPf ${P_VERSION}-${Package}.${new_version}.fort.tar.gz >/dev/null 2>&1
 	if [[ $? -ne 0 ]]; then
-		echo "`date|cut -d' ' -f2-5` tar  tar details faild faild ">> $log_file
+		echo "`date|cut -d' ' -f2-5` tar details faild ">> $log_file
 	fi
 	if [ -e /$TMP/${P_VERSION}-${Package}.${new_version}.mysql.tar.gz ]; then
         		if [ ${ck_mysql} != 0 ];then
@@ -171,34 +183,85 @@ function change_version(){
 	echo "success"
 }
 
+
 Main(){
 sed -n -e '1,/^exit 0$/!p' $0 >"${TMP}/${P_VERSION}-${Package}.${new_version}.tar.gz"
 cd $TMP
 case $1 in 
 1)
 	check_services
-	echo $anum
+	#=============地铁环境===============
 	if [[ $anum -eq 2 ]]; then
 		backup_tomcat
 		tomcat_update
-		mysql_update
+		if [[ $ck_mysql -ne 0 ]]; then
+			mysql_update
+		else
+			echo "faild"
+			echo "`date|cut -d' ' -f2-5` mysql not running ...">> $log_file
+			exit 1
+		fi
+		
 	fi
+    #=====================================
+
+    #=============标准版环境==============
 	if [[ $anum -eq 0 ]]; then
+		if [ "$Slave_IO_Running" = "Yes" -a "$Slave_SQL_Running" = "Yes" -a $hb -ne 0 ];then #双机环境
+			ip_eth=`grep -v ^# /etc/ha.d/ha.cf | grep cast | awk '{print $2}'` #配置双机的网口
+			#rsyn_ip=`grep -v ^# /etc/ha.d/ha.cf | grep cast | awk '{print $3}'` #备机IP
+			backup_tomcat
+			backup_mysql
+			tomcat_update
+			if [[ $ck_mysql -ne 0 ]]; then
+				mysql_update
+			else
+				echo "faild"
+				exit 1
+			fi
+			scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $Master_Host:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
+			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
+			ssh $Master_Host $cmd > /dev/null
+		else #单机环境 
+			backup_tomcat
+			backup_mysql
+			tomcat_update
+			mysql_update
+		fi
+		
+	fi
+	#======================================
+
+	#==========集群环境====================
+	if [[ $anum -eq 1 ]]; then
 		backup_tomcat
 		backup_mysql
 		tomcat_update
-		mysql_update
+		if [[ $ck_mysql -ne 0 ]]; then
+				mysql_update
+			else
+				echo "faild mysql not running"
+				exit 1
+		fi
+		for ip in `cat $config_file`
+		do
+			scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $ip:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
+			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
+			ssh $ip $cmd > /dev/null
+		done
 	fi
-	#mysql_update
+	#======================================
 	change_version
 	echo "standard upgrade">> $log_file
 	;;
 2)
 	check_services
+	#地铁环境
 	if [[ $anum -eq 2 ]]; then
 		backup_tomcat
 		tomcat_update
 	fi
+	#标准版环境
 	if [[ $anum -eq 0 ]]; then
 		backup_tomcat
 		backup_mysql
@@ -211,8 +274,14 @@ case $1 in
 3)
 	check_services
 	if [[ $anum -eq 2 ]]; then
-		backup_mysql
-		mysql_update
+		
+		if [[ $ck_mysql -ne 0 ]]; then
+			backup_mysql
+			mysql_update
+		else
+			echo "faild"
+			exit 1
+		fi
 	fi
 
 	change_version
@@ -228,6 +297,13 @@ case $1 in
 	fi
 	echo "mysql_minor">> $log_file
 	;;
+
+5)
+	check_services
+	backup_tomcat
+	backup_mysql
+	tomcat_update
+	change_version
 esac 
 }
 
