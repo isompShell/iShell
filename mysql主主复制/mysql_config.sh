@@ -4,7 +4,7 @@
 #Version        :2.0.0
 #Release        :1.el7_1
 #Architecture   :x86,x86_64
-#Date           :2015-8-16 23:00
+#Date           :2015-9-18 09:00
 #Release By     :chunyunzeng@hotmail.com
 #Summary        :for auto config mysql replication
 #Description    :this script has testing with mysql-5.6.21&mysql-5.6.22 platform.
@@ -30,7 +30,7 @@ BASEDIR='/usr/local/mysql'
 DATADIR='/usr/local/mysql/data'
 UUID_FILE="${DATADIR}/auto.cnf"
 MYSQL_DAEMON='/etc/init.d/mysql'
-TIMEOUT='9'
+TIMEOUT='15'
 ACTION=0
 
 
@@ -248,7 +248,7 @@ mv -f /tmp/my.cnf /etc/my.cnf >/dev/null 2>&1
 REPL_IP="${LOCAL_HOST}"
 execShell ssh ${REMOTE_HOST} 1 >/dev/null 2>&1
 ACTION=0
-sleep ${TIMEOUT}
+sleep 20
 
 #本地主机mysql授权操作
 REPL_IP="${REMOTE_HOST}"

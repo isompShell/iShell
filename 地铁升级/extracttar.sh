@@ -67,8 +67,7 @@ function check_services(){
 		echo "`date |cut -d' ' -f2-5` mysql not running">> $log_file
 		echo " ------------local configuration checking done------------- ">> $log_file
 	else
-		echo "`date |cut -d' ' -f2-5` mysql running....">> $log_file
-		
+		echo "`date |cut -d' ' -f2-5` mysql running....">> $log_file		
 		echo " ------------local configuration checking done------------- ">> $log_file
 	fi
 	# 检测mysql是否同步
@@ -234,12 +233,9 @@ case $1 in
 
 	#==========集群环境====================
 	if [[ $anum -eq 1 ]]; then
-		backup_tomcat
-		backup_mysql
-		tomcat_update
 		if [[ $ck_mysql -ne 0 ]]; then
 				mysql_update
-			else
+		else
 				echo "faild mysql not running"
 				exit 1
 		fi
