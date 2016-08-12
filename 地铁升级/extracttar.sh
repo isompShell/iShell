@@ -67,8 +67,7 @@ function check_services(){
 		echo "`date |cut -d' ' -f2-5` mysql not running">> $log_file
 		echo " ------------local configuration checking done------------- ">> $log_file
 	else
-		echo "`date |cut -d' ' -f2-5` mysql running....">> $log_file
-		
+		echo "`date |cut -d' ' -f2-5` mysql running....">> $log_file		
 		echo " ------------local configuration checking done------------- ">> $log_file
 	fi
 	# 检测mysql是否同步
@@ -138,10 +137,12 @@ function tomcat_update(){
 
 		if [ "${pid[0]}" != "" ];then
 			kill -9 ${pid[*]} >/dev/null 2>&1
-			sleep 1
+			sleep 2
 		fi
-      		echo "`date |cut -d' ' -f2-5` start tomcat...">> $log_file
+      	echo "`date |cut -d' ' -f2-5` start tomcat...">> $log_file
 		rm -rf /usr/local/tomcat/work/*
+		JAVA_HOME=/usr/local/java/jdk1.8.0_25
+		export  JAVA_HOME
         bash /usr/local/tomcat/bin/startup.sh >/dev/null
 }
 
@@ -234,16 +235,23 @@ case $1 in
 
 	#==========集群环境====================
 	if [[ $anum -eq 1 ]]; then
-		backup_tomcat
-		backup_mysql
-		tomcat_update
 		if [[ $ck_mysql -ne 0 ]]; then
-				mysql_update
-			else
+			check_services
+			backup_tomcat
+			tomcat_update
+			backup_mysql
+			mysql_update
+			change_version
+		else
 				echo "faild mysql not running"
 				exit 1
 		fi
-		for ip in `cat $config_file`
+		
+		eth0=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
+		eth1=`ifconfig eth1 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
+		eth2=`ifconfig eth2 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
+		eth3=`ifconfig eth3 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
+		for ip in `cat $config_file|grep -E -v "$eth0|eth1|eth2|eth3"`
 		do
 			scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $ip:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
 			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
