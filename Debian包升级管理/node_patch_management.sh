@@ -9,7 +9,6 @@
 #Version 1.0
 #The first one,config and management deb package
 
-
 PATCH_ACTION="${1}"
 PATCH_FILE="${2}"
 

@@ -158,7 +158,8 @@ function mysql_update(){
 					echo "`date|cut -d' ' -f2-5` mysql udpate now ...">> $log_file
                 	tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
 					if [ $? == 0 ];then	
-						 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql >/dev/null 2>&1
+						 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql 
+						 #>/dev/null 2>&1
 						 #mysql -umysql -h127.0.0.1 -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
 					fi
 					if [ $? == 0 ];then
@@ -178,7 +179,13 @@ function mysql_update(){
 function change_version(){
 	echo $new_version >/var/lib/fort/version.sn
 	nnn=`echo $new_version | awk -F. '{print $3}'`
-	echo 100$nnn >>/var/lib/fort/version.sn
+	if [ $nnn -lt 10 ];then					
+		echo "100$nnn" >>/var/lib/fort/version.sn
+	elif [ $nnn  -lt 100 ];then						
+		echo "10$nnn" >>/var/lib/fort/version.sn
+	elif [ $nnn  -lt 1000 ];then						
+		echo "1$nnn" >>/var/lib/fort/version.sn
+	fi
 	echo "`date|cut -d' ' -f2-5` version change done ...">> $log_file
 	echo "`date|cut -d' ' -f2-5` installation complete ...">> $log_file
 	echo "success"
@@ -194,15 +201,16 @@ case $1 in
 	#=============地铁环境===============
 	if [[ $anum -eq 2 ]]; then
 		backup_tomcat
-		tomcat_update
+		backup_mysql
+		mysql_update	
 		if [[ $ck_mysql -ne 0 ]]; then
-			mysql_update
+			tomcat_update
 		else
 			echo "faild"
 			echo "`date|cut -d' ' -f2-5` mysql not running ...">> $log_file
 			exit 1
 		fi
-		
+	echo "standard upgrade">> $log_file	
 	fi
     #=====================================
 
@@ -213,21 +221,23 @@ case $1 in
 			#rsyn_ip=`grep -v ^# /etc/ha.d/ha.cf | grep cast | awk '{print $3}'` #备机IP
 			backup_tomcat
 			backup_mysql
-			tomcat_update
+			#scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $Master_Host:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64
+			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
+			ssh $Master_Host $cmd
 			if [[ $ck_mysql -ne 0 ]]; then
 				mysql_update
 			else
 				echo "faild"
 				exit 1
-			fi
-			scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $Master_Host:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
-			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
-			ssh $Master_Host $cmd > /dev/null
-		else #单机环境 
+			fi			
+			tomcat_update
+			change_version
+		else #单机环境 	
 			backup_tomcat
 			backup_mysql
-			tomcat_update
 			mysql_update
+			tomcat_update
+			change_version
 		fi
 		
 	fi
@@ -236,31 +246,41 @@ case $1 in
 	#==========集群环境====================
 	if [[ $anum -eq 1 ]]; then
 		if [[ $ck_mysql -ne 0 ]]; then
-			check_services
 			backup_tomcat
-			tomcat_update
-			backup_mysql
-			mysql_update
-			change_version
+			backup_mysql		
 		else
 				echo "faild mysql not running"
 				exit 1
 		fi
 		
-		eth0=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
-		eth1=`ifconfig eth1 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
-		eth2=`ifconfig eth2 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
-		eth3=`ifconfig eth3 | grep "inet addr"|awk -F: '{print $2}'|awk -F" " '{print $1}'`
-		for ip in `cat $config_file|grep -E -v "$eth0|eth1|eth2|eth3"`
+		eth0=`ifconfig eth0 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
+		eth1=`ifconfig eth1 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
+		eth2=`ifconfig eth2 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
+		eth3=`ifconfig eth3 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
+		for ip in `cat $config_file`
 		do
-			scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $ip:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
+			if [ $ip == "$eth0" ];then
+				continue
+			fi
+			if [ $ip == "$eth1" ];then
+				continue
+			fi
+			if [ $ip == "$eth2" ];then
+				continue
+			fi
+			if [ $ip == "$eth3" ];then
+				continue
+			fi
+			#scp /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 $ip:/usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 > /dev/null
 			cmd="bash /usr/local/fort_nonsyn/config/concentrationManagement/patch/${P_VERSION}-${Package}.isomp.${new_version}.64 5"
-			ssh $ip $cmd > /dev/null
+			ssh $ip $cmd
 		done
+			mysql_update
+			tomcat_update
+			change_version
 	fi
 	#======================================
-	change_version
-	echo "standard upgrade">> $log_file
+	
 	;;
 2)
 	check_services
@@ -273,8 +293,8 @@ case $1 in
 	if [[ $anum -eq 0 ]]; then
 		backup_tomcat
 		backup_mysql
-		tomcat_update
 		mysql_update
+		tomcat_update
 	fi
 	change_version
 	echo "web_up">> $log_file
@@ -310,7 +330,7 @@ case $1 in
 	check_services
 	backup_tomcat
 	backup_mysql
-	tomcat_update
+	tomcat_update	
 	change_version
 esac 
 }
