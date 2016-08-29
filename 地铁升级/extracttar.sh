@@ -19,7 +19,7 @@ ssh_fort="/usr/local/sbin"
 log_name="forts.log"
 log_file="/var/log/$log_name"
 TMP="/tmp"
-config_file="/etc/ip"
+config_file="/usr/local/bin/cluster_config.conf"
 mysql_user="mysql"
 mysql_pass='m2a1s2u!@#'
 #当前环境
@@ -334,6 +334,8 @@ case $1 in
 	change_version
 esac 
 }
-
+switch_value_before=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties | grep fort.cluster.environment | grep -v '#' | awk -F= '{print $2}'`
 Main $1
+switch_value_after=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties | grep fort.cluster.environment | grep -v '#' | awk -F= '{print $2}'`
+sed -i "/fort.cluster.environment/s/$switch_value_after/$switch_value_before/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
 exit 0

@@ -11,7 +11,7 @@ do
     #如果数据节点未启动，启动数据节点，并重启mysqld。否则不做任何操作。
         ndbd_num=`ps -C ndbd --no-header | wc -l`
         if [ $ndbd_num -eq 0 ];then
-          /usr/local/mysql/bin/ndbd > /var/log/ndbd.log
+          /usr/local/mysql/bin/ndbd >> /var/log/ndbd.log
           #sleep 20
           #killall -s SIGKILL mysql
           #service mysql start
@@ -19,7 +19,7 @@ do
 
     else
     #管理节点未启动或管理节点挂掉的时候，关闭数据节点
-      ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --reload >/var/log/mysql_cluster.log
+      ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --reload >>/var/log/mysql_cluster.log
           #ndbd_num=`ps -C ndbd --no-header | wc -l`
       #if [ $ndbd_num != 0 ];then
         #killall -s SIGKILL ndbd

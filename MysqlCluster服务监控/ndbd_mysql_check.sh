@@ -1,6 +1,6 @@
 #!/bin/bash
 
-while:
+while true :
 do
     #检测管理节点是否已经启动
     nc -w 10 -z 127.0.0.1 1186 > /dev/null 2>&1
@@ -11,7 +11,7 @@ do
     #如果数据节点未启动，启动数据节点，并重启mysqld。否则不做任何操作。
         ndbd_num=`ps -C ndbd --no-header | wc -l`
         if [ $ndbd_num -eq 0 ];then
-          /usr/local/mysql/bin/ndbd
+          /usr/local/mysql/bin/ndbd >/dev/null 2>&1
           #sleep 20
           #killall -s SIGKILL mysql
           #service mysql start
@@ -19,7 +19,7 @@ do
 
     else
     #管理节点未启动或管理节点挂掉的时候，关闭数据节点
-      ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --reload
+      ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --reload >/dev/null 2>&1
           #ndbd_num=`ps -C ndbd --no-header | wc -l`
       #if [ $ndbd_num != 0 ];then
         #killall -s SIGKILL ndbd

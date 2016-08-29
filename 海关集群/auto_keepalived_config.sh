@@ -13,7 +13,12 @@
 #
 #
 #
-
+config_file=/usr/local/bin/cluster_config.conf
+panduan(){
+	if [[ $? -ne 0 ]]; then
+		exit 1
+	fi
+}
 
 
 #===============================
@@ -65,13 +70,19 @@ function keepalived_config(){
 #read -p "Enter real_server :" real_server
 #real_server=($real_server) #real_server数组
 #real_server_count=echo $real_server | awk '{print NF}'   #real_serverIP数量
-realIP=`cat /etc/ip`
+#realIP=`cat /etc/ip`
 state=$(whiptail --title "fort dialog" --inputbox "输入堡垒主机状态[MASTER,BACKUP]? 必须大写" 10 60 BACKUP 3>&1 1>&2 2>&3)
+panduan
 interface=$(whiptail --title "fort dialog" --inputbox "lvs故障切换检测网口?" 10 60 eth0 3>&1 1>&2 2>&3)
+panduan
 priority=$(whiptail --title "fort dialog" --inputbox "输入优先级别(数字越大，优先级越高)" 10 60 100 3>&1 1>&2 2>&3)
+panduan
 vip=$(whiptail --title "fort dialog" --inputbox "输入虚拟IP地址" 10 60  3>&1 1>&2 2>&3)
-real_server=$(whiptail --title "fort dialog" --inputbox "输入所有realserver IP地址(以空格分割)" 10 60 "${realIP}" 3>&1 1>&2 2>&3)
+panduan
+real_server=$(whiptail --title "fort dialog" --inputbox "输入所有realserver IP地址(以空格分割)" 10 60  3>&1 1>&2 2>&3)
+panduan
 real_port=$(whiptail --title "fort dialog" --inputbox "输入所有realserver 开放端口(以空格分割)" 10 60 "22 3390 20021" 3>&1 1>&2 2>&3)
+panduan
 real_server=($real_server)
 real_port=($real_port)
 real_server_count=`echo "${real_server[@]}" | awk '{print NF}'`   #real_serverIP数量
@@ -162,7 +173,8 @@ do
 	done
 
 done
-
+/etc/init.d/ipvsadm restart
+/etc/init.d/keepalived restart
 }
 #==============================
 #+++++lvs+keepalived对话框+++++
@@ -186,15 +198,18 @@ function keepalived_dialog(){
          fi
          if [[ $keepdia -eq 3 ]]; then
                 keepalived_install
+                exit 0
          fi
          if [[ $keepdia -eq 4 ]]; then
                 keepalived_config
+                exit 0
          fi
 }
 #================================
 #+++主函数，程序从这里开始运行+++
 #================================
 MySQL_Cluster(){
+whiptail --title "fort dialog" --msgbox "确认是否备份数据库？" 15 60
 mysql_cmd=`ps -ef | grep mysql | grep -v grep | awk '{print $2}'`
 kill -9 $mysql_cmd
 mv /usr/local/mysql /usr/local/mysql_bak
@@ -202,7 +217,7 @@ dpkg -i /var/package/deploy/libnuma1_2.0.8~rc4-1_amd64.deb
 dpkg -i /var/package/deploy/libaio1_0.3.109-3_amd64.deb
 
 tar -zxvPf /root/mysql.tar.gz
-config_file=/etc/ip
+
 ip1=`sed -n '1p' $config_file`
 ip2=`sed -n '2p' $config_file`
 ip3=`sed -n '3p' $config_file`
@@ -278,24 +293,29 @@ NodeId=9
 hostname=$ip3
 [mysqld]
 EOF
+cat /etc/my.cnf | grep default-storage-engine=ndbcluster >/dev/null
+if [ $? -ne 0 ];then
+    sed -i "/mysqldump/i\default-storage-engine=ndbcluster\nndbcluster\nndb-connectstring=$ip1,$ip2,$ip3\n[mysql_cluster]\nndb-connectstring=$ip1,$ip2,$ip3\n" /etc/my.cnf    
+fi
 
-sed -i "/mysqldump/i\default-storage-engine=ndbcluster\nndbcluster\nndb-connectstring=$ip1,$ip2,$ip3\n[mysql_cluster]\nndb-connectstring=$ip1,$ip2,$ip3\n" /etc/my.cnf
 ln -s /usr/local/mysql/bin/ndb_mgmd /usr/bin/ndb_mgmd
 ln -s /usr/local/mysql/bin/ndb_mgm /usr/bin/ndb_mgm
 ln -s /usr/local/mysql/bin/ndbd /usr/bin/ndbd
 ln -s /usr/local/mysql/bin/ndb_restore /usr/bin/ndb_restore
-ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --initial
+#ndb_mgmd -f /usr/local/mysql/mysql-cluster/config.ini --configdir=/usr/local/mysql/mysql-cluster --initial
 }
 
 #=========安装配置sersync======
+
 SERSYNC(){
+dpkg -i /var/package/deploy/fort_master_rsync_1.0_amd64.deb >/dev/null 2>&1
 eth0=`ifconfig eth0 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
 #eth1=`ifconfig eth1 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
 #eth2=`ifconfig eth2 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
 #eth3=`ifconfig eth3 2>/dev/null | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}'`
 seip1=`cat $config_file | grep -E -v "$eth0" | sed -n '1p'`
 seip2=`cat $config_file | grep -E -v "$eth0" | sed -n '2p'`
-cat >/usr/local/GNU-Linux-x86/conxml_ca.xml <<EOF
+cat > /usr/local/GNU-Linux-x86/confxml_ca.xml <<EOF
 	<?xml version="1.0" encoding="ISO-8859-1"?>
 <head version="2.5">
     <host hostip="localhost" port="8008"></host>
@@ -321,7 +341,7 @@ cat >/usr/local/GNU-Linux-x86/conxml_ca.xml <<EOF
     <sersync>
 	<localpath watch="/etc/simp_fort/cacenter">
 	    <remote ip="$seip1" name="ca"/>
-	    <remote ip="$seip1" name="ca"/>
+	    <remote ip="$seip2" name="ca"/>
 	    <!--<remote ip="192.168.8.40" name="tongbu"/>-->
 	</localpath>
 	<rsync>
@@ -362,10 +382,9 @@ cat >/usr/local/GNU-Linux-x86/conxml_ca.xml <<EOF
 	</localpath>
     </plugin>
 </head>
-	
 EOF
 
-cat >/usr/local/GNU-Linux-x86/conxml_fort.xml <<EOF
+cat > /usr/local/GNU-Linux-x86/confxml_fort.xml <<EOF
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <head version="2.5">
     <host hostip="localhost" port="8008"></host>
@@ -434,7 +453,7 @@ cat >/usr/local/GNU-Linux-x86/conxml_fort.xml <<EOF
 </head>
 EOF
 
-cat >/usr/local/GNU-Linux-x86/conxml_fort.xml <<EOF
+cat > /usr/local/GNU-Linux-x86/confxml_patch.xml <<EOF
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <head version="2.5">
     <host hostip="localhost" port="8008"></host>
@@ -503,7 +522,87 @@ cat >/usr/local/GNU-Linux-x86/conxml_fort.xml <<EOF
 </head>
 EOF
 
-cat /etc/rsyncd.conf <<EOF
+cat > /usr/local/GNU-Linux-x86/confxml_str.xml <<EOF
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<head version="2.5">
+    <host hostip="localhost" port="8008"></host>
+    <debug start="false"/>
+    <fileSystem xfs="false"/>
+    <filter start="false">
+	<exclude expression="(.*)\.svn"></exclude>
+	<exclude expression="(.*)\.gz"></exclude>
+	<exclude expression="^info/*"></exclude>
+	<exclude expression="^static/*"></exclude>
+    </filter>
+    <inotify>
+	<delete start="true"/>
+	<createFolder start="true"/>
+	<createFile start="false"/>
+	<closeWrite start="true"/>
+	<moveFrom start="true"/>
+	<moveTo start="true"/>
+	<attrib start="false"/>
+	<modify start="false"/>
+    </inotify>
+
+    <sersync>
+	<localpath watch="/usr/local/fort_nonsyn/config/concentrationManagement/strategy/">
+	    <remote ip="$seip1" name="strategy"/>
+	    <remote ip="$seip2" name="strategy"/>
+	    <!--<remote ip="192.168.8.40" name="tongbu"/>-->
+	</localpath>
+	<rsync>
+	    <commonParams params="-artupog --partial"/>
+	    <auth start="true" users="isomp" passwordfile="/etc/rsyncl.pwd"/>
+	    <userDefinedPort start="false" port="874"/><!-- port=874 -->
+	    <timeout start="false" time="100"/><!-- timeout=100 -->
+	    <ssh start="false"/>
+	</rsync>
+	<failLog path="/tmp/rsync_fail_log.sh" timeToExecute="60"/><!--default every 60mins execute once-->
+	<crontab start="false" schedule="600"><!--600mins-->
+	    <crontabfilter start="false">
+		<exclude expression="*.php"></exclude>
+		<exclude expression="info/*"></exclude>
+	    </crontabfilter>
+	</crontab>
+	<plugin start="false" name="command"/>
+    </sersync>
+
+    <plugin name="command">
+	<param prefix="/bin/sh" suffix="" ignoreError="true"/>	<!--prefix /opt/tongbu/mmm.sh suffix-->
+	<filter start="false">
+	    <include expression="(.*)\.php"/>
+	    <include expression="(.*)\.sh"/>
+	</filter>
+    </plugin>
+
+    <plugin name="socket">
+	<localpath watch="/opt/tongbu">
+	    <deshost ip="192.168.138.20" port="8009"/>
+	</localpath>
+    </plugin>
+    <plugin name="refreshCDN">
+	<localpath watch="/data0/htdocs/cms.xoyo.com/site/">
+	    <cdninfo domainname="ccms.chinacache.com" port="80" username="xxxx" passwd="xxxx"/>
+	    <sendurl base="http://pic.xoyo.com/cms"/>
+	    <regexurl regex="false" match="cms.xoyo.com/site([/a-zA-Z0-9]*).xoyo.com/images"/>
+	</localpath>
+    </plugin>
+</head>
+EOF
+
+cat >/etc/rsyncd.conf <<EOF
+log file=/var/log/rsyncd
+pid file=/var/run/rsyncd.pid
+uid = root
+gid = root
+use chroot = yes
+read only = no
+hosts allow=$seip1,$seip2
+max connections = 20
+log format = %t %a %m %f %b
+#syslog facility = local3
+timeout = 300
 [session]
 	path = /var/log/simp_fort/session
 	list = yes
@@ -521,7 +620,14 @@ cat /etc/rsyncd.conf <<EOF
 	ignore errors = no
 	ignore nonreadable = yes
 [patch]
-	path = /usr/local/fort_nonsyn/config/concentrationManagement/patch/
+	path = /usr/local/fort_nonsyn/config/concentrationManagement/patch
+	list = yes
+	auth users = isomp
+	secrets file = /etc/rsync.pwd
+	ignore errors = no
+	ignore nonreadable = yes
+[strategy]
+	path = /usr/local/fort_nonsyn/config/concentrationManagement/strategy
 	list = yes
 	auth users = isomp
 	secrets file = /etc/rsync.pwd
@@ -530,10 +636,11 @@ cat /etc/rsyncd.conf <<EOF
 
 EOF
 #==============================
-
+mkdir -p /usr/local/fort_nonsyn/config/concentrationManagement/strategy
 /usr/local/GNU-Linux-x86/sersync2 -d -r -o /usr/local/GNU-Linux-x86/confxml_ca.xml
 /usr/local/GNU-Linux-x86/sersync2 -d -r -o /usr/local/GNU-Linux-x86/confxml_fort.xml
 /usr/local/GNU-Linux-x86/sersync2 -d -r -o /usr/local/GNU-Linux-x86/confxml_patch.xml
+/usr/local/GNU-Linux-x86/sersync2 -d -r -o /usr/local/GNU-Linux-x86/confxml_str.xml
 }
 Main(){
         OPTION=$(whiptail --title "fort dialog" --menu "Choose your option" 15 60 4 \
@@ -541,7 +648,7 @@ Main(){
         "2" "MySQL_Cluster" \
         "3" "sersync" \
          3>&1 1>&2 2>&3)
-		 keepalived_dialog
+         panduan
         if [[ $OPTION -eq 1 ]]; then
                 keepalived_dialog
 				ifconfig lo:0 $vip broadcast $vip netmask 255.255.255.255 up
