@@ -2,7 +2,6 @@ USE `fort`;
 SET FOREIGN_KEY_CHECKS = 0; 
 SET unique_checks=0; 
 
-
 drop table if exists fort_account;
 
 drop table if exists fort_application_release_server;
