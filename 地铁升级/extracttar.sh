@@ -246,12 +246,9 @@ case $1 in
 	#==========集群环境====================
 	if [[ $anum -eq 1 ]]; then
 		if [[ $ck_mysql -ne 0 ]]; then
-<<<<<<< HEAD
 			backup_tomcat
 			backup_mysql		
-=======
-				mysql_update
->>>>>>> b70105f0a714d080b4987f46a67e0faf4ac984a4
+
 		else
 				echo "faild mysql not running"
 				exit 1
