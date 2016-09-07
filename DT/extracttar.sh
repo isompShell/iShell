@@ -158,9 +158,8 @@ function mysql_update(){
 					echo "`date|cut -d' ' -f2-5` mysql udpate now ...">> $log_file
                 	tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
 					if [ $? == 0 ];then	
-						 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql 
-						 #>/dev/null 2>&1
-						 #mysql -umysql -h127.0.0.1 -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
+						 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/update.sql >/dev/null 2>&1
+						 mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
 					fi
 					if [ $? == 0 ];then
                			 echo "`date|cut -d' ' -f2-5` mysql update done ...">> $log_file
@@ -332,6 +331,8 @@ case $1 in
 	backup_tomcat
 	backup_mysql
 	tomcat_update	
+	#tar -zxvPf ${P_VERSION}-${Package}.${new_version}.mysql.tar.gz >/dev/null 2>&1
+	#mysql -umysql -p'm2a1s2u!@#' fort < /usr/local/tomcat/webapps/fort/WEB-INF/classes/fortProcedure.sql >/dev/null 2>&1
 	change_version
 esac 
 }
