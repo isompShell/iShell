@@ -12,10 +12,19 @@ CONFIG_KEEP="/etc/keepalived/keepalived.conf"
 BEFORE_IP=(`cat $CONFIG_FILE`)   #将之前IP转换为数组
 #获取虚拟IP
 BEFORE_VIP=`cat /etc/keepalived/keepalived.conf | grep virtual_server | awk '{print $2}'|uniq`
-
+PAR_NUM=$#
+FIR=$1
+SEC=$2
+THI=$3
+FOUR=$4
 chang_file(){
-	VIP=($(whiptail --title "Change Virtual IP" --inputbox "要更改的VIP" 10 60  3>&1 1>&2 2>&3))
-	IP=($(whiptail --title "Change Ipaddress" --inputbox "要更改的IP" 10 60  3>&1 1>&2 2>&3))
+	if [ $PAR_NUM -eq 0 ];then
+		VIP=($(whiptail --title "Change Virtual IP" --inputbox "要更改的VIP" 10 60  3>&1 1>&2 2>&3))
+		IP=($(whiptail --title "Change Ipaddress" --inputbox "要更改的IP" 10 60  3>&1 1>&2 2>&3))
+	else
+		VIP=($FIR)
+		IP=($SEC $THI $FOUR)
+	fi
 	COUNT=`echo "${IP[@]}" | awk '{print NF}'`   #用户输入的IP数量
 	rm -rf $CONFIG_FILE    #清空文件内容
 	touch $CONFIG_FILE     #清空文件内容
@@ -96,11 +105,11 @@ echo "magent -u root -p 12001 -s ${EXP_IP[0]}:11211 -b ${EXP_IP[1]}:11211" >>/us
 
 chang_file
 #本机IP
-LOCAL_IP=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk '{print $1}'`
-#本机以外的IP
-EXP_IP=(`cat $CONFIG_FILE | grep -v $LOCAL_IP`)
-keepalived
-sersync
-change_mysql
-magent_memcache
-service_restart
+#LOCAL_IP=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk '{print $1}'`
+##本机以外的IP
+#EXP_IP=(`cat $CONFIG_FILE | grep -v $LOCAL_IP`)
+#keepalived
+#sersync
+#change_mysql
+#magent_memcache
+#service_restart
