@@ -6,6 +6,8 @@
 #Date:2016-10-26
 #Version:1.0
 
+#fort.appagent.conf=00
+
 CONFIG_FILE="/usr/local/bin/cluster_config.conf"
 CONFIG_KEEP="/etc/keepalived/keepalived.conf"
 #获取更改前的IP
@@ -20,7 +22,13 @@ FOUR=$4
 chang_file(){
 	if [ $PAR_NUM -eq 0 ];then
 		VIP=($(whiptail --title "Change Virtual IP" --inputbox "要更改的VIP" 10 60  3>&1 1>&2 2>&3))
+		if [[ $? -ne 0 ]]; then
+			exit 0
+		fi
 		IP=($(whiptail --title "Change Ipaddress" --inputbox "要更改的IP" 10 60  3>&1 1>&2 2>&3))
+		if [[ $? -ne 0 ]]; then
+			exit 0
+		fi
 	else
 		VIP=($FIR)
 		IP=($SEC $THI $FOUR)
@@ -66,7 +74,9 @@ change_mysql(){
 magent_memcache(){
 	MEM_IP=`awk -F: '/memcached/{print $2}' /usr/local/tomcat/conf/context.xml`
 	sed -i "/memcachedNodes/s/$MEM_IP/127.0.0.1/g" /usr/local/tomcat/conf/context.xml
-	sed -i "/memcached/s/$MEM_IP/127.0.0.1/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
+	LIP=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties  | grep memcached | grep -v ^# | awk -F[:=] '{print $2}'`
+	sed -i "/memcached/s/$LIP/127.0.0.1/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
+	sed -i "/^fort.local/s/$LIP/$LOCAL_IP/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
 }
 
 
@@ -99,17 +109,29 @@ start_tomcat.sh
 echo "ifconfig lo:0 $VIP broadcast $VIP netmask 255.255.255.255 up" >>/usr/local/bin/sh/start.sh
 echo "magent -u root -p 12000 -s 127.0.0.1:11211 -b 127.0.0.1:12001" >>/usr/local/bin/sh/start.sh
 echo "magent -u root -p 12001 -s ${EXP_IP[0]}:11211 -b ${EXP_IP[1]}:11211" >>/usr/local/bin/sh/start.sh
-#service mysql restart
+ps -ef | grep mysql | egrep -v "grep|ndb" |awk '{print $2}'| xargs kill -9
+/etc/init.d/mysql start
 }
 
 
+appagent(){
+	#NUMBER=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties | grep appagent | grep -v ^# | awk -F= '{print $2}'`
+	
+	for((i=0;i<$COUNT;i++));
+	do
+		SIP=`cat /etc/simp_fort/conf/sso_channel/0$i.conf | grep ip | awk -F= '{print $2}'`
+		sed -i "s/$SIP/${IP[$i]}/g" /etc/simp_fort/conf/sso_channel/0$i.conf;
+	done
+}
+
 chang_file
 #本机IP
-#LOCAL_IP=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk '{print $1}'`
+LOCAL_IP=`ifconfig eth0 | grep "inet addr"|awk -F: '{print $2}'|awk '{print $1}'`
 ##本机以外的IP
-#EXP_IP=(`cat $CONFIG_FILE | grep -v $LOCAL_IP`)
-#keepalived
-#sersync
-#change_mysql
-#magent_memcache
-#service_restart
+EXP_IP=(`cat $CONFIG_FILE | grep -v $LOCAL_IP`)
+keepalived
+sersync
+change_mysql
+magent_memcache
+appagent
+service_restart
