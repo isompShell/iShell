@@ -7,7 +7,7 @@
 #Version:1.0
 
 #fort.appagent.conf=00
-
+umount -l /var/log/simp_fort/session
 CONFIG_FILE="/usr/local/bin/cluster_config.conf"
 CONFIG_KEEP="/etc/keepalived/keepalived.conf"
 #获取更改前的IP
@@ -19,21 +19,75 @@ FIR=$1
 SEC=$2
 THI=$3
 FOUR=$4
+#! /bin/bash
+#检测IP是否合法
+checkip() {
+        if echo $1 |egrep -q '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$' ; then
+                a=`echo $1 | awk -F. '{print $1}'`
+                b=`echo $1 | awk -F. '{print $2}'`
+                c=`echo $1 | awk -F. '{print $3}'`
+                d=`echo $1 | awk -F. '{print $4}'`
+
+                for n in $a $b $c $d; do
+                        if [ $n -ge 255 ] || [ $n -le 0 ]; then                             
+                                echo "1"
+                        fi
+                done
+        else
+                echo "1"
+        fi
+}
+
 chang_file(){
 	if [ $PAR_NUM -eq 0 ];then
+		while [[ true ]]; do
 		VIP=($(whiptail --title "Change Virtual IP" --inputbox "要更改的VIP" 10 60  3>&1 1>&2 2>&3))
 		if [[ $? -ne 0 ]]; then
-			exit 0
+				exit 0
+		fi	
+		
+		if [[ `checkip $VIP` -eq 1 ]]; then
+			whiptail --title "错误" --msgbox "Error.IP不合法" 10 60
+		else
+			break
 		fi
-		IP=($(whiptail --title "Change Ipaddress" --inputbox "要更改的IP" 10 60  3>&1 1>&2 2>&3))
-		if [[ $? -ne 0 ]]; then
-			exit 0
-		fi
+	    done
+
+		while [[ true ]]; do
+			IP=($(whiptail --title "Change Ipaddress" --inputbox "要更改的IP" 10 60  3>&1 1>&2 2>&3))
+			if [[ $? -ne 0 ]]; then
+				exit 0
+			fi
+			COUNT=`echo "${IP[@]}" | awk '{print NF}'`   #用户输入的IP数量
+			if [[ $COUNT -lt 3 ]]; then
+				whiptail --title "错误" --msgbox "Error:输入IP少于三个" 10 60
+				#continue
+			elif [[ ${IP[0]} == ${IP[1]} || ${IP[0]} == ${IP[2]} || ${IP[1]} == ${IP[2]} ]]; then
+				whiptail --title "错误" --msgbox "Error:IP不可相同" 10 60
+				#continue
+			elif [[ `checkip ${IP[0]}` -eq 1 || `checkip ${IP[1]}` -eq 1 || `checkip ${IP[2]}` -eq 1 ]]; then
+				whiptail --title "错误" --msgbox "Error:IP不合法" 10 60
+				#continue
+			else
+				break
+			fi
+		done
 	else
 		VIP=($FIR)
 		IP=($SEC $THI $FOUR)
+		COUNT=`echo "${IP[@]}" | awk '{print NF}'`
 	fi
-	COUNT=`echo "${IP[@]}" | awk '{print NF}'`   #用户输入的IP数量
+	
+
+	
+	
+	#========判断IP的数量小于3=============
+	#++++++++++++++++++++++++++++++++++++++++
+	#=======IP不能相等=======================
+	#++++++++++++++++++++++++++++++++++++++++
+	#=====IP合法性===========================
+	#++++++++++++++++++++++++++++++++++++++++
+	
 	rm -rf $CONFIG_FILE    #清空文件内容
 	touch $CONFIG_FILE     #清空文件内容
 	for((i=0;i<$COUNT;i++));
@@ -75,8 +129,9 @@ magent_memcache(){
 	MEM_IP=`awk -F: '/memcached/{print $2}' /usr/local/tomcat/conf/context.xml`
 	sed -i "/memcachedNodes/s/$MEM_IP/127.0.0.1/g" /usr/local/tomcat/conf/context.xml
 	LIP=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties  | grep memcached | grep -v ^# | awk -F[:=] '{print $2}'`
+	LOIP=`cat /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties  | grep fort.local | grep -v ^# | awk -F= '{print $2}'`
 	sed -i "/memcached/s/$LIP/127.0.0.1/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
-	sed -i "/^fort.local/s/$LIP/$LOCAL_IP/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
+	sed -i "/^fort.local/s/$LOIP/$LOCAL_IP/g" /usr/local/tomcat/webapps/fort/WEB-INF/classes/fort.properties
 }
 
 
