@@ -1,7 +1,7 @@
 #!/bin/bash
 #Title:shell_create.sh
 #Usage: document
-#Description:easy
+#Description:auto create shell
 #Author:jiahan
 #Date:2016-11-09
 #Version:1.0
@@ -17,13 +17,19 @@
 structure(){ 
   #count=`sed -n '$=' $config_file`   #统计配置文件行数,加入判断是否有空行
   #(`awk -F: '{print $2}'`)           #配置文件内容
+  #cat -A config_file.txt | tail -n1
   config_file="config_file.txt"
+  cat $config_file | uniq >$config_file  #将多空白行合并为一行
+  space_num=(`egrep -n "^$" $config_file | awk -F":" '{print $1}'`)  #空白行的行号
+  space_count=`echo ${space_num[@]} | awk -F[\ ] '{print NF}'`     #空白行的数量
+  
+
   #sed -i s/.$// $config_file
   file_name=`sed -n '1p' $config_file` #要生成的脚本名
   ltc=`sed -n '2p' $config_file`
   resource=`sed -n '3p' $config_file`
-  symbol=(`sed -n '4p' $config_file`)
-  count=`echo ${symbol[@]}|awk -F[\ ] '{print NF}'`
+  #symbol=(`sed -n '4p' $config_file`)
+  #count=`echo ${symbol[@]}|awk -F[\ ] '{print NF}'`
 }
 
 #==================================================
@@ -40,6 +46,7 @@ structure(){
 #函数4：network改密(net_change_password)
 #==============================================
 net_change_password(){
+echo $file_name
 cat > $file_name <<EOF
 #!/bin/bash
 
@@ -82,13 +89,31 @@ expect "Password:"
 send "\$PWD\r"
 EOF
 
-for (( i = 1; i <=$count; i++ )); do
-	command=`sed -n '5p' config_file.txt | awk -v c="$i" -F"|" '{print $c}'`
+#for (( i = 1; i <=$count; i++ )); do
+#	command=`sed -n '5p' $config_file | awk -v c="$i" -F"|" '{print $c}'`
+#cat >> $file_name <<EOF
+#expect "*${symbol[i-1]}"
+#send "$command\r"
+#EOF
+#done
+
+for (( i = 0; i < $space_count-1; i++ )); do
+  	let temp=${space_num[$i]}+2         #空行下2行为命令行
+  	let temp1=${space_num[$i+1]}-1      #空行上一行为命令行
+  	#let count=${space_num[$i+1]}-${space_num[$i]}-2 #命令的行数
+  	#symbol=(`sed -n "$temp,${temp1}p" $config_file | awk -F"|" '{print $1}'`) #截取到的第一位标识.如：> : # #
+  	#command=(`sed -n "$temp,${temp1}p" $config_file | awk -F"|" '{print $2}'`) #截取到的标识后命令
+  	#let count=$temp1-$temp         #标识数量
+  	for (( i = $temp; i <=$temp1; i++ )); do
+  		symbol=`sed -n "${i}p" $config_file | awk -F"|" '{print $1}'`
+  		command=`sed -n "${i}p" $config_file | awk -F"|" '{print $2}'`
 cat >> $file_name <<EOF
-expect "*${symbol[i-1]}"
+expect "$symbol"
 send "$command\r"
 EOF
 done
+done
+
 
 cat >> $file_name <<EEE
 send "exit\r"   
@@ -142,6 +167,7 @@ config_error(){
 Main(){
   structure
   if [[ $ltc=="改密" ]]; then
+  	echo $ltc
   	case $resource in
   		windows*)
         	win_change_password
