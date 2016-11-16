@@ -18,7 +18,7 @@ structure(){
   #count=`sed -n '$=' $config_file`   #统计配置文件行数,加入判断是否有空行
   #(`awk -F: '{print $2}'`)           #配置文件内容
   #cat -A config_file.txt | tail -n1
-  config_file="config_file.txt"
+  config_file="config_file.conf"
   cat $config_file | uniq >/tmp/test.conf #将多空白行合并为一行
   cat /tmp/test.conf > $config_file
   rm -rf /tmp/test.conf
