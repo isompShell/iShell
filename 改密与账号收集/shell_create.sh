@@ -19,7 +19,9 @@ structure(){
   #(`awk -F: '{print $2}'`)           #配置文件内容
   #cat -A config_file.txt | tail -n1
   config_file="config_file.txt"
-  cat $config_file | uniq >$config_file  #将多空白行合并为一行
+  cat $config_file | uniq >/tmp/test.conf #将多空白行合并为一行
+  cat /tmp/test.conf > $config_file
+  rm -rf /tmp/test.conf
   space_num=(`egrep -n "^$" $config_file | awk -F":" '{print $1}'`)  #空白行的行号
   space_count=`echo ${space_num[@]} | awk -F[\ ] '{print NF}'`     #空白行的数量
   
@@ -46,7 +48,6 @@ structure(){
 #函数4：network改密(net_change_password)
 #==============================================
 net_change_password(){
-echo $file_name
 cat > $file_name <<EOF
 #!/bin/bash
 
@@ -54,20 +55,44 @@ if [ \$# -eq 6 ];then
 	PROTOCOL=\$1  #远程登录协议 ssh or telnet:超时时间
 	USER=\$2      #管理员用户
 	IP=\$3        #交换机IP
-	PWD=\$4  	  #管理员密码
+	PASS=\$4  	  #管理员密码
 	username=\$5  #要更改的用户名
 	password=\$6  #要更改的用户密码
+	VERSION="null"
 	
 fi
 
 if [ \$# -eq 7 ];then
+	expr \$7 "+" 10 &> /dev/null
+	if [ \$? -eq 0 ];then
+ 	    PROTOCOL=\$1  #远程登录协议 ssh or telnet:超时时间
+		USER=\$2      #管理员用户
+		IP=\$3        #交换机IP
+		PASS=\$4  	  #管理员密码
+		username=\$5  #要更改的用户名
+		password=\$6  #要更改的用户密码
+		VERSION=\$7
+	else
+  		PROTOCOL=\$1  #远程登录协议 ssh or telnet:超时时间
+		USER=\$2      #管理员用户
+		IP=\$3        #交换机IP
+		PASS=\$4  	  #管理员密码
+		username=\$7  #要更改的用户名
+		password=\$5  #要更改的用户密码
+		secret=\$6	  #特权密码
+		VERSION="null"
+	fi
+fi
+
+if [ \$# -eq 8 ];then
 	PROTOCOL=\$1  #远程登录协议 ssh or telnet:超时时间
 	USER=\$2      #管理员用户
 	IP=\$3        #交换机IP
-	PWD=\$4  	  #管理员密码
+	PASS=\$4  	  #管理员密码
 	username=\$7  #要更改的用户名
 	password=\$5  #要更改的用户密码
-	SECRET=\$6	  #特权密码
+	secret=\$6	  #特权密码
+    VERSION=\$8    #交换机型号
 fi
 PROTOCOL=\`echo \$PROTOCOL | awk -F: '{print \$1}'\` 
 TIMEOUT=\`echo \$PROTOCOL | awk -F: '{print \$2}'\`  #超时时间
@@ -80,13 +105,6 @@ case \$PROTOCOL in
         CMD="telnet \${IP}"
     ;;
 esac
-expect <<EOF
-set timeout \$TIMEOUT
-spawn \$CMD
-expect  "sername:" 
-send "\$USER\r"
-expect "Password:"
-send "\$PWD\r"
 EOF
 
 #for (( i = 1; i <=$count; i++ )); do
@@ -97,33 +115,63 @@ EOF
 #EOF
 #done
 
-for (( i = 0; i < $space_count-1; i++ )); do
+for (( i = 0; i < $space_count-1; i++ )); do      #追加函数
   	let temp=${space_num[$i]}+2         #空行下2行为命令行
   	let temp1=${space_num[$i+1]}-1      #空行上一行为命令行
+  	let model_num=${space_num[$i]}+1   #型号的行数
+  	model=`sed -n "${model_num}p" $config_file`  #交换机型号
+    model_arr[$i]=$model     #model_arr:交换机所有型号
+
   	#let count=${space_num[$i+1]}-${space_num[$i]}-2 #命令的行数
   	#symbol=(`sed -n "$temp,${temp1}p" $config_file | awk -F"|" '{print $1}'`) #截取到的第一位标识.如：> : # #
   	#command=(`sed -n "$temp,${temp1}p" $config_file | awk -F"|" '{print $2}'`) #截取到的标识后命令
   	#let count=$temp1-$temp         #标识数量
-  	for (( i = $temp; i <=$temp1; i++ )); do
-  		symbol=`sed -n "${i}p" $config_file | awk -F"|" '{print $1}'`
-  		command=`sed -n "${i}p" $config_file | awk -F"|" '{print $2}'`
+   echo "_$model(){" >> $file_name
+   cat >> $file_name <<EEE
+expect <<EOF
+	set timeout \$TIMEOUT
+	spawn \$CMD
+	expect  "sername:" 
+	send "\$USER\r"
+	expect "Password:"
+	send "\$PASS\r"
+EEE
+  	for (( j = $temp; j <=$temp1; j++ )); do
+  		symbol=`sed -n "${j}p" $config_file | awk -F"|" '{print $1}'`
+  		command=`sed -n "${j}p" $config_file | awk -F"|" '{print $2}'`
 cat >> $file_name <<EOF
-expect "$symbol"
-send "$command\r"
+	expect "$symbol"
+	send "$command\r"
 EOF
 done
-done
-
 
 cat >> $file_name <<EEE
-send "exit\r"   
-send "quit\r"
-send "exit\r"   
-send "quit\r" 
-expect eof
+	send "exit\r"   
+	send "quit\r"
+	send "exit\r"   
+	send "quit\r" 
+	expect eof
 EOF
+}
 EEE
+done
 
+echo "case \$VERSION in" >> $file_name
+for (( i = 0; i < $space_count-1; i++ )); do	
+	let model_num=${space_num[$i]}+1 
+	model=`sed -n "${model_num}p" $config_file`  #交换机型号
+    cat >> $file_name <<EEE
+    $model )
+		_$model
+		;;
+EEE
+done
+	cat >> $file_name <<EOF
+	* )
+		_1001
+		;;
+EOF
+	echo "esac" >> $file_name
 }  
 
 #==============================================
@@ -166,8 +214,7 @@ config_error(){
 
 Main(){
   structure
-  if [[ $ltc=="改密" ]]; then
-  	echo $ltc
+  if [[ $ltc=="changepassword" ]]; then
   	case $resource in
   		windows*)
         	win_change_password
@@ -182,7 +229,7 @@ Main(){
 			config_error
   			;;
   	esac
-  elif [[ $ltc=="账号收集" ]]; then
+  elif [[ $ltc=="accountcollection" ]]; then
   	case $resource in
   		windows* )
 			win_user_collect
@@ -197,7 +244,7 @@ Main(){
 			config_error
   			;;
   	esac
-  elif [[ $ltc=="添加账号" ]]; then
+  elif [[ $ltc=="adduser" ]]; then
   	case $resource in
   		windows* )
 			win_add_user
